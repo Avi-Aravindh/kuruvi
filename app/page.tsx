@@ -2,38 +2,95 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { Id } from "../convex/_generated/dataModel";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
-type StageId = "inbox" | "design" | "backend" | "frontend" | "qa" | "deploy" | "done";
+type AgentId = "inbox" | "design" | "backend" | "frontend" | "qa" | "deploy" | "done";
 
-type StageIconProps = { color: string; size?: number };
-
-interface Stage {
-  id: StageId;
+interface AgentQueue {
+  id: AgentId;
   name: string;
-  icon: (props: StageIconProps) => React.JSX.Element;
-  accent: string;
+  description: string;
+  icon: (props: { size?: number }) => React.JSX.Element;
+  color: string;
+  bgColor: string;
+  borderColor: string;
 }
 
-// ─── Stage Configuration ────────────────────────────────────────────────────
-const stages: readonly Stage[] = [
-  { id: "inbox", name: "Inbox", icon: InboxIcon, accent: "#6366f1" },
-  { id: "design", name: "Design", icon: DesignIcon, accent: "#a855f7" },
-  { id: "backend", name: "Backend", icon: BackendIcon, accent: "#3b82f6" },
-  { id: "frontend", name: "Frontend", icon: FrontendIcon, accent: "#10b981" },
-  { id: "qa", name: "QA", icon: QAIcon, accent: "#f59e0b" },
-  { id: "deploy", name: "Deploy", icon: DeployIcon, accent: "#ef4444" },
-  { id: "done", name: "Done", icon: DoneIcon, accent: "#22c55e" },
+// ─── Agent Queue Configuration ──────────────────────────────────────────────
+const agentQueues: readonly AgentQueue[] = [
+  {
+    id: "inbox",
+    name: "Inbox",
+    description: "Your tasks",
+    icon: InboxIcon,
+    color: "#6366f1",
+    bgColor: "#eef2ff",
+    borderColor: "#c7d2fe",
+  },
+  {
+    id: "design",
+    name: "Design",
+    description: "Design agent",
+    icon: DesignIcon,
+    color: "#9333ea",
+    bgColor: "#faf5ff",
+    borderColor: "#e9d5ff",
+  },
+  {
+    id: "backend",
+    name: "Backend",
+    description: "Backend agent",
+    icon: BackendIcon,
+    color: "#2563eb",
+    bgColor: "#eff6ff",
+    borderColor: "#bfdbfe",
+  },
+  {
+    id: "frontend",
+    name: "Frontend",
+    description: "Frontend agent",
+    icon: FrontendIcon,
+    color: "#059669",
+    bgColor: "#ecfdf5",
+    borderColor: "#a7f3d0",
+  },
+  {
+    id: "qa",
+    name: "QA",
+    description: "QA agent",
+    icon: QAIcon,
+    color: "#d97706",
+    bgColor: "#fffbeb",
+    borderColor: "#fde68a",
+  },
+  {
+    id: "deploy",
+    name: "Deploy",
+    description: "Deploy agent",
+    icon: DeployIcon,
+    color: "#dc2626",
+    bgColor: "#fef2f2",
+    borderColor: "#fecaca",
+  },
+  {
+    id: "done",
+    name: "Done",
+    description: "Completed",
+    icon: DoneIcon,
+    color: "#16a34a",
+    bgColor: "#f0fdf4",
+    borderColor: "#bbf7d0",
+  },
 ];
 
 // ─── Priority Configuration ─────────────────────────────────────────────────
 const priorityConfig = {
-  urgent: { label: "Urgent", color: "#ef4444", bg: "rgba(239,68,68,0.1)", border: "rgba(239,68,68,0.2)" },
-  high: { label: "High", color: "#f97316", bg: "rgba(249,115,22,0.1)", border: "rgba(249,115,22,0.2)" },
-  medium: { label: "Medium", color: "#6366f1", bg: "rgba(99,102,241,0.1)", border: "rgba(99,102,241,0.2)" },
-  low: { label: "Low", color: "#a1a1aa", bg: "rgba(161,161,170,0.08)", border: "rgba(161,161,170,0.15)" },
+  urgent: { label: "Urgent", color: "#dc2626", bg: "#fef2f2", border: "#fecaca", dot: "#dc2626" },
+  high: { label: "High", color: "#ea580c", bg: "#fff7ed", border: "#fed7aa", dot: "#ea580c" },
+  medium: { label: "Medium", color: "#6366f1", bg: "#eef2ff", border: "#c7d2fe", dot: "#6366f1" },
+  low: { label: "Low", color: "#9ca3af", bg: "#f9fafb", border: "#e5e7eb", dot: "#9ca3af" },
 } as const;
 
 type Priority = keyof typeof priorityConfig;
@@ -47,7 +104,7 @@ export default function Home() {
   const [showNewTask, setShowNewTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
-  const [newTaskStage, setNewTaskStage] = useState<StageId>("inbox");
+  const [newTaskStage, setNewTaskStage] = useState<AgentId>("inbox");
   const [newTaskPriority, setNewTaskPriority] = useState<Priority>("medium");
   const [expandedTask, setExpandedTask] = useState<string | null>(null);
 
@@ -67,109 +124,243 @@ export default function Home() {
     setShowNewTask(false);
   };
 
-  const tasksByStage = stages.reduce((acc, stage) => {
-    acc[stage.id] = tasks.filter((t) => t.stage === stage.id);
-    return acc;
-  }, {} as Record<StageId, typeof tasks>);
+  const tasksByAgent = agentQueues.reduce(
+    (acc, queue) => {
+      acc[queue.id] = tasks.filter((t) => t.stage === queue.id);
+      return acc;
+    },
+    {} as Record<AgentId, typeof tasks>
+  );
 
   const totalTasks = tasks.length;
-  const completedTasks = tasks.filter(t => t.stage === "done").length;
+  const activeTasks = tasks.filter((t) => t.stage !== "done").length;
+  const completedTasks = tasks.filter((t) => t.stage === "done").length;
 
   return (
-    <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
+    <div className="h-screen flex flex-col overflow-hidden" style={{ background: "#fafbfc" }}>
       {/* ─── Header ──────────────────────────────────────────────────── */}
-      <header className="flex-shrink-0 border-b border-border">
-        <div className="flex items-center justify-between px-5 h-14">
-          <div className="flex items-center gap-6">
+      <header
+        className="flex-shrink-0"
+        style={{
+          background: "#ffffff",
+          borderBottom: "1px solid #e5e7eb",
+        }}
+      >
+        <div className="flex items-center justify-between px-6 h-14">
+          <div className="flex items-center gap-5">
+            {/* Logo */}
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z" />
                   <line x1="16" y1="8" x2="2" y2="22" />
                   <line x1="17.5" y1="15" x2="9" y2="15" />
                 </svg>
               </div>
-              <span className="font-semibold text-[15px] tracking-tight">Kuruvi</span>
+              <span
+                style={{
+                  fontSize: "16px",
+                  fontWeight: 600,
+                  color: "#111827",
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                Kuruvi
+              </span>
             </div>
 
-            {/* Breadcrumb-style summary */}
-            <div className="hidden sm:flex items-center gap-2 text-[13px] text-muted">
-              <span>{totalTasks} tasks</span>
-              <span className="text-border">|</span>
-              <span>{completedTasks} done</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowNewTask(true)}
-              className="h-8 px-3 rounded-md text-[13px] font-medium bg-accent text-white hover:bg-accent-hover transition-colors flex items-center gap-1.5"
+            {/* Stats */}
+            <div
+              className="hidden sm:flex items-center gap-3"
+              style={{ fontSize: "13px", color: "#6b7280" }}
             >
-              <PlusIcon />
-              <span className="hidden sm:inline">New Task</span>
-            </button>
+              <div className="flex items-center gap-1.5">
+                <div
+                  className="w-2 h-2 rounded-full"
+                  style={{ background: "#6366f1" }}
+                />
+                <span>{activeTasks} active</span>
+              </div>
+              <span style={{ color: "#d1d5db" }}>/</span>
+              <div className="flex items-center gap-1.5">
+                <div
+                  className="w-2 h-2 rounded-full"
+                  style={{ background: "#16a34a" }}
+                />
+                <span>{completedTasks} done</span>
+              </div>
+            </div>
           </div>
+
+          <button
+            onClick={() => setShowNewTask(true)}
+            className="flex items-center gap-1.5"
+            style={{
+              height: "34px",
+              padding: "0 14px",
+              borderRadius: "8px",
+              fontSize: "13px",
+              fontWeight: 500,
+              background: "#6366f1",
+              color: "#ffffff",
+              border: "none",
+              cursor: "pointer",
+              transition: "background 0.15s",
+            }}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.background = "#4f46e5")
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.background = "#6366f1")
+            }
+          >
+            <PlusIcon />
+            <span className="hidden sm:inline">New Task</span>
+          </button>
         </div>
       </header>
 
-      {/* ─── Board ───────────────────────────────────────────────────── */}
+      {/* ─── Agent Queues Board ────────────────────────────────────── */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
-        <div className="flex h-full min-w-fit">
-          {stages.map((stage) => {
-            const stageTasks = tasksByStage[stage.id] || [];
-            const StageIcon = stage.icon;
+        <div className="flex h-full" style={{ minWidth: "fit-content" }}>
+          {agentQueues.map((queue) => {
+            const queueTasks = tasksByAgent[queue.id] || [];
+            const QueueIcon = queue.icon;
 
             return (
               <div
-                key={stage.id}
-                className="flex flex-col h-full border-r border-border last:border-r-0"
-                style={{ width: "280px", minWidth: "280px" }}
+                key={queue.id}
+                className="flex flex-col h-full"
+                style={{
+                  width: "296px",
+                  minWidth: "296px",
+                  borderRight: "1px solid #f0f0f0",
+                }}
               >
                 {/* Column Header */}
-                <div className="flex-shrink-0 px-4 py-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <StageIcon color={stage.accent} />
-                    <span className="text-[13px] font-medium">{stage.name}</span>
-                    <span className="text-[12px] text-muted ml-0.5">
-                      {stageTasks.length}
-                    </span>
-                  </div>
-                  {stage.id === "inbox" && (
-                    <button
-                      onClick={() => {
-                        setNewTaskStage("inbox");
-                        setShowNewTask(true);
+                <div
+                  className="flex-shrink-0 flex items-center justify-between"
+                  style={{ padding: "16px 16px 12px" }}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className="w-7 h-7 rounded-md flex items-center justify-center"
+                      style={{
+                        background: queue.bgColor,
+                        border: `1px solid ${queue.borderColor}`,
                       }}
-                      className="w-6 h-6 rounded-md hover:bg-surface-hover flex items-center justify-center text-muted hover:text-foreground transition-colors"
                     >
-                      <PlusIcon />
-                    </button>
-                  )}
+                      <QueueIcon size={14} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          style={{
+                            fontSize: "13px",
+                            fontWeight: 600,
+                            color: "#111827",
+                          }}
+                        >
+                          {queue.name}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            fontWeight: 500,
+                            color: "#9ca3af",
+                            background: "#f3f4f6",
+                            padding: "1px 6px",
+                            borderRadius: "10px",
+                          }}
+                        >
+                          {queueTasks.length}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setNewTaskStage(queue.id);
+                      setShowNewTask(true);
+                    }}
+                    className="flex items-center justify-center"
+                    style={{
+                      width: "26px",
+                      height: "26px",
+                      borderRadius: "6px",
+                      border: "none",
+                      background: "transparent",
+                      color: "#9ca3af",
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#f3f4f6";
+                      e.currentTarget.style.color = "#6b7280";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = "#9ca3af";
+                    }}
+                  >
+                    <PlusIcon />
+                  </button>
                 </div>
 
                 {/* Task List */}
-                <div className="flex-1 overflow-y-auto px-2 pb-3 kanban-column">
-                  <div className="space-y-[1px]">
-                    {stageTasks.map((task) => (
+                <div
+                  className="flex-1 overflow-y-auto kanban-column"
+                  style={{ padding: "0 8px 12px" }}
+                >
+                  <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                    {queueTasks.map((task) => (
                       <TaskCard
                         key={task._id}
                         task={task}
-                        stage={stage}
-                        stages={stages}
+                        queue={queue}
+                        allQueues={agentQueues}
                         moveTask={moveTask}
                         isExpanded={expandedTask === task._id}
                         onToggleExpand={() =>
-                          setExpandedTask(expandedTask === task._id ? null : task._id)
+                          setExpandedTask(
+                            expandedTask === task._id ? null : task._id
+                          )
                         }
                       />
                     ))}
                   </div>
 
                   {/* Empty state */}
-                  {stageTasks.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-12 text-muted">
-                      <StageIcon color="var(--border-color)" size={28} />
-                      <span className="text-[12px] mt-2">No tasks</span>
+                  {queueTasks.length === 0 && (
+                    <div
+                      className="flex flex-col items-center justify-center"
+                      style={{
+                        padding: "48px 16px",
+                        color: "#d1d5db",
+                      }}
+                    >
+                      <QueueIcon size={28} />
+                      <span
+                        style={{
+                          fontSize: "13px",
+                          marginTop: "8px",
+                          color: "#9ca3af",
+                        }}
+                      >
+                        No tasks
+                      </span>
                     </div>
                   )}
                 </div>
@@ -205,47 +396,83 @@ export default function Home() {
 // ─── Task Card ──────────────────────────────────────────────────────────────
 function TaskCard({
   task,
-  stage,
-  stages,
+  queue,
+  allQueues,
   moveTask,
   isExpanded,
   onToggleExpand,
 }: {
   task: any;
-  stage: Stage;
-  stages: readonly Stage[];
+  queue: AgentQueue;
+  allQueues: readonly AgentQueue[];
   moveTask: any;
   isExpanded: boolean;
   onToggleExpand: () => void;
 }) {
-  const stageIndex = stages.findIndex((s) => s.id === stage.id);
-  const nextStage = stageIndex < stages.length - 1 ? stages[stageIndex + 1] : null;
   const priority = priorityConfig[task.priority as Priority];
+  const [showMoveMenu, setShowMoveMenu] = useState(false);
 
   return (
     <div
-      className="group rounded-lg px-3 py-2.5 cursor-pointer transition-card hover:bg-surface-hover border border-transparent hover:border-border"
+      className="group transition-card"
+      style={{
+        borderRadius: "8px",
+        padding: "10px 12px",
+        cursor: "pointer",
+        background: "#ffffff",
+        border: "1px solid transparent",
+        transition: "all 0.15s ease",
+      }}
       onClick={onToggleExpand}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = "#ffffff";
+        e.currentTarget.style.borderColor = "#e5e7eb";
+        e.currentTarget.style.boxShadow =
+          "0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = "#ffffff";
+        e.currentTarget.style.borderColor = "transparent";
+        e.currentTarget.style.boxShadow = "none";
+      }}
     >
       {/* Title row */}
       <div className="flex items-start gap-2.5">
-        <div className="flex-shrink-0 mt-0.5">
+        <div className="flex-shrink-0" style={{ marginTop: "2px" }}>
           <StatusIndicator status={task.status} />
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-medium leading-snug text-foreground line-clamp-2">
+        <div className="flex-1" style={{ minWidth: 0 }}>
+          <p
+            style={{
+              fontSize: "13px",
+              fontWeight: 500,
+              lineHeight: "1.4",
+              color: "#111827",
+              margin: 0,
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}
+          >
             {task.title}
           </p>
         </div>
       </div>
 
       {/* Meta row */}
-      <div className="flex items-center gap-2 mt-2 ml-[22px]">
+      <div
+        className="flex items-center gap-2"
+        style={{ marginTop: "8px", marginLeft: "22px" }}
+      >
         <span
-          className="text-[11px] font-medium px-1.5 py-0.5 rounded"
           style={{
+            fontSize: "12px",
+            fontWeight: 500,
+            padding: "2px 8px",
+            borderRadius: "4px",
             color: priority.color,
-            backgroundColor: priority.bg,
+            background: priority.bg,
             border: `1px solid ${priority.border}`,
           }}
         >
@@ -253,7 +480,10 @@ function TaskCard({
         </span>
 
         {task.assignedTo && (
-          <span className="text-[11px] text-muted flex items-center gap-1">
+          <span
+            className="flex items-center gap-1"
+            style={{ fontSize: "12px", color: "#9ca3af" }}
+          >
             <UserIcon />
             {task.assignedTo}
           </span>
@@ -262,40 +492,172 @@ function TaskCard({
 
       {/* Expanded details */}
       {isExpanded && (
-        <div className="mt-3 ml-[22px] space-y-3">
+        <div style={{ marginTop: "12px", marginLeft: "22px" }}>
           {task.description && (
-            <p className="text-[12px] text-muted leading-relaxed">
+            <p
+              style={{
+                fontSize: "13px",
+                color: "#6b7280",
+                lineHeight: "1.5",
+                margin: "0 0 12px 0",
+              }}
+            >
               {task.description}
             </p>
           )}
 
           {/* Timestamps */}
-          <div className="text-[11px] text-muted flex items-center gap-3">
+          <div
+            className="flex items-center gap-3"
+            style={{
+              fontSize: "12px",
+              color: "#9ca3af",
+              marginBottom: "12px",
+            }}
+          >
             <span>Created {formatRelativeTime(task.createdAt)}</span>
             {task.completedAt && (
               <span>Completed {formatRelativeTime(task.completedAt)}</span>
             )}
           </div>
 
-          {/* Move actions */}
-          {nextStage && stage.id !== "done" && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                moveTask({
-                  taskId: task._id,
-                  newStage: nextStage.id,
-                  agentName: "user",
-                });
-              }}
-              className="flex items-center gap-1.5 text-[12px] font-medium text-accent hover:text-accent-hover transition-colors"
-            >
-              <ArrowRightIcon />
-              Move to {nextStage.name}
-            </button>
+          {/* Move to agent queue */}
+          {queue.id !== "done" && (
+            <div style={{ position: "relative" }}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowMoveMenu(!showMoveMenu);
+                }}
+                className="flex items-center gap-1.5"
+                style={{
+                  fontSize: "12px",
+                  fontWeight: 500,
+                  color: "#6366f1",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "4px 0",
+                  transition: "color 0.15s",
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.color = "#4f46e5")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.color = "#6366f1")
+                }
+              >
+                <MoveIcon />
+                Move to...
+              </button>
+
+              {/* Move dropdown */}
+              {showMoveMenu && (
+                <MoveMenu
+                  currentQueueId={queue.id}
+                  allQueues={allQueues}
+                  onMove={(targetId) => {
+                    moveTask({
+                      taskId: task._id,
+                      newStage: targetId,
+                      agentName: "user",
+                    });
+                    setShowMoveMenu(false);
+                  }}
+                  onClose={() => setShowMoveMenu(false)}
+                />
+              )}
+            </div>
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Move Menu ──────────────────────────────────────────────────────────────
+function MoveMenu({
+  currentQueueId,
+  allQueues,
+  onMove,
+  onClose,
+}: {
+  currentQueueId: AgentId;
+  allQueues: readonly AgentQueue[];
+  onMove: (targetId: AgentId) => void;
+  onClose: () => void;
+}) {
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onClose]);
+
+  return (
+    <div
+      ref={menuRef}
+      style={{
+        position: "absolute",
+        left: 0,
+        top: "100%",
+        marginTop: "4px",
+        background: "#ffffff",
+        border: "1px solid #e5e7eb",
+        borderRadius: "8px",
+        boxShadow:
+          "0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05)",
+        padding: "4px",
+        zIndex: 10,
+        minWidth: "180px",
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {allQueues
+        .filter((q) => q.id !== currentQueueId)
+        .map((q) => {
+          const QIcon = q.icon;
+          return (
+            <button
+              key={q.id}
+              onClick={() => onMove(q.id)}
+              className="flex items-center gap-2.5 w-full"
+              style={{
+                padding: "7px 10px",
+                borderRadius: "6px",
+                border: "none",
+                background: "transparent",
+                cursor: "pointer",
+                fontSize: "13px",
+                fontWeight: 400,
+                color: "#374151",
+                transition: "background 0.1s",
+                textAlign: "left",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.background = "#f3f4f6")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background = "transparent")
+              }
+            >
+              <div
+                className="w-5 h-5 rounded flex items-center justify-center"
+                style={{
+                  background: q.bgColor,
+                }}
+              >
+                <QIcon size={12} />
+              </div>
+              {q.name}
+            </button>
+          );
+        })}
     </div>
   );
 }
@@ -317,8 +679,8 @@ function NewTaskModal({
   setTitle: (v: string) => void;
   description: string;
   setDescription: (v: string) => void;
-  stage: StageId;
-  setStage: (v: StageId) => void;
+  stage: AgentId;
+  setStage: (v: AgentId) => void;
   priority: Priority;
   setPriority: (v: Priority) => void;
   onSubmit: () => void;
@@ -330,7 +692,6 @@ function NewTaskModal({
     titleRef.current?.focus();
   }, []);
 
-  // Close on Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -341,25 +702,44 @@ function NewTaskModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] modal-overlay"
-      style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+      className="fixed inset-0 z-50 flex items-start justify-center modal-overlay"
+      style={{
+        backgroundColor: "rgba(0, 0, 0, 0.2)",
+        backdropFilter: "blur(2px)",
+        paddingTop: "15vh",
+      }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
-        className="modal-content w-full max-w-lg mx-4 rounded-xl bg-surface border border-border overflow-hidden"
-        style={{ boxShadow: "0 24px 48px -12px rgba(0,0,0,0.25)" }}
+        className="modal-content w-full max-w-lg mx-4 overflow-hidden"
+        style={{
+          borderRadius: "12px",
+          background: "#ffffff",
+          border: "1px solid #e5e7eb",
+          boxShadow:
+            "0 20px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.04)",
+        }}
       >
         {/* Title input */}
-        <div className="px-5 pt-5">
+        <div style={{ padding: "20px 20px 0" }}>
           <input
             ref={titleRef}
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Task title"
-            className="w-full text-[15px] font-medium bg-transparent placeholder:text-muted/50 focus:outline-none"
+            style={{
+              width: "100%",
+              fontSize: "16px",
+              fontWeight: 500,
+              background: "transparent",
+              border: "none",
+              outline: "none",
+              color: "#111827",
+              padding: 0,
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
@@ -370,28 +750,53 @@ function NewTaskModal({
         </div>
 
         {/* Description input */}
-        <div className="px-5 pt-2">
+        <div style={{ padding: "8px 20px 0" }}>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Add a description..."
             rows={3}
-            className="w-full text-[13px] bg-transparent placeholder:text-muted/50 focus:outline-none resize-none text-muted"
+            style={{
+              width: "100%",
+              fontSize: "14px",
+              background: "transparent",
+              border: "none",
+              outline: "none",
+              color: "#6b7280",
+              resize: "none",
+              padding: 0,
+            }}
           />
         </div>
 
         {/* Options bar */}
-        <div className="px-5 py-3 flex items-center gap-2 flex-wrap">
-          {/* Stage selector */}
-          <div className="relative">
+        <div
+          className="flex items-center gap-2 flex-wrap"
+          style={{ padding: "12px 20px" }}
+        >
+          {/* Agent queue selector */}
+          <div style={{ position: "relative" }}>
             <select
               value={stage}
-              onChange={(e) => setStage(e.target.value as StageId)}
-              className="appearance-none h-7 pl-2.5 pr-7 rounded-md text-[12px] font-medium bg-surface-hover border border-border hover:border-border-hover cursor-pointer focus:outline-none focus:border-accent transition-colors"
+              onChange={(e) => setStage(e.target.value as AgentId)}
+              style={{
+                appearance: "none",
+                height: "30px",
+                padding: "0 28px 0 10px",
+                borderRadius: "6px",
+                fontSize: "13px",
+                fontWeight: 500,
+                background: "#f9fafb",
+                border: "1px solid #e5e7eb",
+                color: "#374151",
+                cursor: "pointer",
+                outline: "none",
+                transition: "border-color 0.15s",
+              }}
             >
-              {stages.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
+              {agentQueues.map((q) => (
+                <option key={q.id} value={q.id}>
+                  {q.name}
                 </option>
               ))}
             </select>
@@ -399,40 +804,98 @@ function NewTaskModal({
           </div>
 
           {/* Priority selector */}
-          <div className="relative">
+          <div style={{ position: "relative" }}>
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value as Priority)}
-              className="appearance-none h-7 pl-2.5 pr-7 rounded-md text-[12px] font-medium bg-surface-hover border border-border hover:border-border-hover cursor-pointer focus:outline-none focus:border-accent transition-colors"
+              style={{
+                appearance: "none",
+                height: "30px",
+                padding: "0 28px 0 10px",
+                borderRadius: "6px",
+                fontSize: "13px",
+                fontWeight: 500,
+                background: "#f9fafb",
+                border: "1px solid #e5e7eb",
+                color: "#374151",
+                cursor: "pointer",
+                outline: "none",
+                transition: "border-color 0.15s",
+              }}
             >
-              {(Object.entries(priorityConfig) as [Priority, (typeof priorityConfig)[Priority]][]).map(
-                ([key, config]) => (
-                  <option key={key} value={key}>
-                    {config.label}
-                  </option>
-                )
-              )}
+              {(
+                Object.entries(priorityConfig) as [
+                  Priority,
+                  (typeof priorityConfig)[Priority],
+                ][]
+              ).map(([key, config]) => (
+                <option key={key} value={key}>
+                  {config.label}
+                </option>
+              ))}
             </select>
             <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t border-border flex items-center justify-between">
-          <span className="text-[11px] text-muted">
+        <div
+          className="flex items-center justify-between"
+          style={{
+            padding: "12px 20px",
+            borderTop: "1px solid #f3f4f6",
+          }}
+        >
+          <span style={{ fontSize: "12px", color: "#9ca3af" }}>
             Press Enter to create
           </span>
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}
-              className="h-8 px-3 rounded-md text-[13px] font-medium text-muted hover:text-foreground hover:bg-surface-hover transition-colors"
+              style={{
+                height: "34px",
+                padding: "0 12px",
+                borderRadius: "6px",
+                fontSize: "13px",
+                fontWeight: 500,
+                color: "#6b7280",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#f3f4f6";
+                e.currentTarget.style.color = "#374151";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = "#6b7280";
+              }}
             >
               Cancel
             </button>
             <button
               onClick={onSubmit}
               disabled={!title.trim()}
-              className="h-8 px-4 rounded-md text-[13px] font-medium bg-accent text-white hover:bg-accent-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{
+                height: "34px",
+                padding: "0 16px",
+                borderRadius: "6px",
+                fontSize: "13px",
+                fontWeight: 500,
+                background: title.trim() ? "#6366f1" : "#e5e7eb",
+                color: title.trim() ? "#ffffff" : "#9ca3af",
+                border: "none",
+                cursor: title.trim() ? "pointer" : "not-allowed",
+                transition: "background 0.15s",
+              }}
+              onMouseEnter={(e) => {
+                if (title.trim()) e.currentTarget.style.background = "#4f46e5";
+              }}
+              onMouseLeave={(e) => {
+                if (title.trim()) e.currentTarget.style.background = "#6366f1";
+              }}
             >
               Create
             </button>
@@ -447,8 +910,25 @@ function NewTaskModal({
 function StatusIndicator({ status }: { status: string }) {
   if (status === "completed") {
     return (
-      <div className="w-4 h-4 rounded-full bg-[#22c55e] flex items-center justify-center">
-        <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <div
+        className="flex items-center justify-center"
+        style={{
+          width: "16px",
+          height: "16px",
+          borderRadius: "50%",
+          background: "#16a34a",
+        }}
+      >
+        <svg
+          width="8"
+          height="8"
+          viewBox="0 0 12 12"
+          fill="none"
+          stroke="white"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <polyline points="2,6 5,9 10,3" />
         </svg>
       </div>
@@ -456,21 +936,59 @@ function StatusIndicator({ status }: { status: string }) {
   }
   if (status === "in_progress") {
     return (
-      <div className="w-4 h-4 rounded-full border-2 border-[#f59e0b] flex items-center justify-center">
-        <div className="w-1.5 h-1.5 rounded-full bg-[#f59e0b] pulse-dot" />
+      <div
+        className="flex items-center justify-center"
+        style={{
+          width: "16px",
+          height: "16px",
+          borderRadius: "50%",
+          border: "2px solid #f59e0b",
+        }}
+      >
+        <div
+          className="pulse-dot"
+          style={{
+            width: "6px",
+            height: "6px",
+            borderRadius: "50%",
+            background: "#f59e0b",
+          }}
+        />
       </div>
     );
   }
   if (status === "blocked") {
     return (
-      <div className="w-4 h-4 rounded-full border-2 border-[#ef4444] flex items-center justify-center">
-        <div className="w-[6px] h-[2px] bg-[#ef4444] rounded-full" />
+      <div
+        className="flex items-center justify-center"
+        style={{
+          width: "16px",
+          height: "16px",
+          borderRadius: "50%",
+          border: "2px solid #ef4444",
+        }}
+      >
+        <div
+          style={{
+            width: "6px",
+            height: "2px",
+            background: "#ef4444",
+            borderRadius: "2px",
+          }}
+        />
       </div>
     );
   }
   // queued
   return (
-    <div className="w-4 h-4 rounded-full border-2 border-border" />
+    <div
+      style={{
+        width: "16px",
+        height: "16px",
+        borderRadius: "50%",
+        border: "2px solid #d1d5db",
+      }}
+    />
   );
 }
 
@@ -501,17 +1019,29 @@ function PlusIcon() {
   );
 }
 
-function ArrowRightIcon() {
+function MoveIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-      <path fillRule="evenodd" d="M8.22 2.97a.75.75 0 011.06 0l4.25 4.25a.75.75 0 010 1.06l-4.25 4.25a.75.75 0 01-1.06-1.06l2.97-2.97H3.75a.75.75 0 010-1.5h7.44L8.22 4.03a.75.75 0 010-1.06z" />
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M5 3l-3 3 3 3" />
+      <path d="M2 6h8" />
+      <path d="M11 13l3-3-3-3" />
+      <path d="M14 10H6" />
     </svg>
   );
 }
 
 function UserIcon() {
   return (
-    <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" className="opacity-60">
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" style={{ opacity: 0.5 }}>
       <path d="M10.561 8.073a6.005 6.005 0 013.432 5.142.75.75 0 11-1.498.07 4.5 4.5 0 00-8.99 0 .75.75 0 01-1.498-.07 6.005 6.005 0 013.431-5.142 3.999 3.999 0 115.123 0zM10.5 5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
     </svg>
   );
@@ -519,65 +1049,89 @@ function UserIcon() {
 
 function ChevronDownIcon({ className = "" }: { className?: string }) {
   return (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className={`text-muted ${className}`}>
-      <path fillRule="evenodd" d="M4.22 6.22a.75.75 0 011.06 0L8 8.94l2.72-2.72a.75.75 0 111.06 1.06l-3.25 3.25a.75.75 0 01-1.06 0L4.22 7.28a.75.75 0 010-1.06z" />
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 16 16"
+      fill="#9ca3af"
+      className={className}
+    >
+      <path
+        fillRule="evenodd"
+        d="M4.22 6.22a.75.75 0 011.06 0L8 8.94l2.72-2.72a.75.75 0 111.06 1.06l-3.25 3.25a.75.75 0 01-1.06 0L4.22 7.28a.75.75 0 010-1.06z"
+      />
     </svg>
   );
 }
 
-// ─── Stage Icons ────────────────────────────────────────────────────────────
-function InboxIcon({ color, size = 14 }: { color: string; size?: number }) {
+// ─── Agent Queue Icons ──────────────────────────────────────────────────────
+function InboxIcon({ size = 14 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill={color}>
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="#6366f1">
       <path d="M1.5 3A1.5 1.5 0 013 1.5h10A1.5 1.5 0 0114.5 3v4.134a1 1 0 01-.232.636L11.5 11.234V13.5a1 1 0 01-1 1h-5a1 1 0 01-1-1v-2.266L1.732 7.77A1 1 0 011.5 7.134V3zm1.5 0v4.134l2.768 3.464a1 1 0 01.232.636V13.5h4v-2.266a1 1 0 01.232-.636L13 7.134V3H3z" />
     </svg>
   );
 }
 
-function DesignIcon({ color, size = 14 }: { color: string; size?: number }) {
+function DesignIcon({ size = 14 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill={color}>
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="#9333ea">
       <path d="M8 1a.75.75 0 01.75.75v2.5a.75.75 0 01-1.5 0v-2.5A.75.75 0 018 1zm5.303 2.697a.75.75 0 010 1.06l-1.768 1.768a.75.75 0 01-1.06-1.06l1.767-1.768a.75.75 0 011.061 0zM15 8a.75.75 0 01-.75.75h-2.5a.75.75 0 010-1.5h2.5A.75.75 0 0115 8zm-2.697 5.303a.75.75 0 01-1.06 0l-1.768-1.768a.75.75 0 111.06-1.06l1.768 1.767a.75.75 0 010 1.061zM8 11.25a.75.75 0 01.75.75v2.5a.75.75 0 01-1.5 0V12a.75.75 0 01.75-.75zm-5.303-2.553a.75.75 0 010-1.06l1.768-1.768a.75.75 0 011.06 1.06L3.758 8.697a.75.75 0 01-1.061 0zM1 8a.75.75 0 01.75-.75h2.5a.75.75 0 010 1.5h-2.5A.75.75 0 011 8zm2.697-5.303a.75.75 0 011.06 0l1.768 1.768a.75.75 0 01-1.06 1.06L3.697 3.758a.75.75 0 010-1.061zM8 5.5a2.5 2.5 0 100 5 2.5 2.5 0 000-5z" />
     </svg>
   );
 }
 
-function BackendIcon({ color, size = 14 }: { color: string; size?: number }) {
+function BackendIcon({ size = 14 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill={color}>
-      <path fillRule="evenodd" d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v3.585a.746.746 0 010 .83v5.085A1.75 1.75 0 0114.25 13H1.75A1.75 1.75 0 010 11.25V6.165a.746.746 0 010-.83V1.75zm1.75-.25a.25.25 0 00-.25.25v3h13V1.75a.25.25 0 00-.25-.25H1.75zM1.5 6.25v5a.25.25 0 00.25.25h12.5a.25.25 0 00.25-.25v-5h-13zM3 8.75A.75.75 0 013.75 8h4.5a.75.75 0 010 1.5h-4.5A.75.75 0 013 8.75zM3.75 3a.75.75 0 000 1.5h.5a.75.75 0 000-1.5h-.5zM6 3.75a.75.75 0 01.75-.75h.5a.75.75 0 010 1.5h-.5A.75.75 0 016 3.75z" />
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="#2563eb">
+      <path
+        fillRule="evenodd"
+        d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v3.585a.746.746 0 010 .83v5.085A1.75 1.75 0 0114.25 13H1.75A1.75 1.75 0 010 11.25V6.165a.746.746 0 010-.83V1.75zm1.75-.25a.25.25 0 00-.25.25v3h13V1.75a.25.25 0 00-.25-.25H1.75zM1.5 6.25v5a.25.25 0 00.25.25h12.5a.25.25 0 00.25-.25v-5h-13zM3 8.75A.75.75 0 013.75 8h4.5a.75.75 0 010 1.5h-4.5A.75.75 0 013 8.75zM3.75 3a.75.75 0 000 1.5h.5a.75.75 0 000-1.5h-.5zM6 3.75a.75.75 0 01.75-.75h.5a.75.75 0 010 1.5h-.5A.75.75 0 016 3.75z"
+      />
     </svg>
   );
 }
 
-function FrontendIcon({ color, size = 14 }: { color: string; size?: number }) {
+function FrontendIcon({ size = 14 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill={color}>
-      <path fillRule="evenodd" d="M4.72 3.22a.75.75 0 011.06 1.06L2.06 8l3.72 3.72a.75.75 0 11-1.06 1.06L.47 8.53a.75.75 0 010-1.06l4.25-4.25zm6.56 0a.75.75 0 10-1.06 1.06L13.94 8l-3.72 3.72a.75.75 0 101.06 1.06l4.25-4.25a.75.75 0 000-1.06l-4.25-4.25z" />
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="#059669">
+      <path
+        fillRule="evenodd"
+        d="M4.72 3.22a.75.75 0 011.06 1.06L2.06 8l3.72 3.72a.75.75 0 11-1.06 1.06L.47 8.53a.75.75 0 010-1.06l4.25-4.25zm6.56 0a.75.75 0 10-1.06 1.06L13.94 8l-3.72 3.72a.75.75 0 101.06 1.06l4.25-4.25a.75.75 0 000-1.06l-4.25-4.25z"
+      />
     </svg>
   );
 }
 
-function QAIcon({ color, size = 14 }: { color: string; size?: number }) {
+function QAIcon({ size = 14 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill={color}>
-      <path fillRule="evenodd" d="M2.5 1.75v11.5c0 .138.112.25.25.25h3.17a.75.75 0 010 1.5H2.75A1.75 1.75 0 011 13.25V1.75C1 .784 1.784 0 2.75 0h10.5C14.216 0 15 .784 15 1.75v7.5a.75.75 0 01-1.5 0v-7.5a.25.25 0 00-.25-.25H2.75a.25.25 0 00-.25.25zm8.78 8.97a.75.75 0 010 1.06l-2.25 2.25a.75.75 0 01-1.06 0l-1.25-1.25a.75.75 0 111.06-1.06l.72.72 1.72-1.72a.75.75 0 011.06 0zM4.75 3h6.5a.75.75 0 010 1.5h-6.5a.75.75 0 010-1.5zM4 6.75A.75.75 0 014.75 6h6.5a.75.75 0 010 1.5h-6.5A.75.75 0 014 6.75z" />
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="#d97706">
+      <path
+        fillRule="evenodd"
+        d="M2.5 1.75v11.5c0 .138.112.25.25.25h3.17a.75.75 0 010 1.5H2.75A1.75 1.75 0 011 13.25V1.75C1 .784 1.784 0 2.75 0h10.5C14.216 0 15 .784 15 1.75v7.5a.75.75 0 01-1.5 0v-7.5a.25.25 0 00-.25-.25H2.75a.25.25 0 00-.25.25zm8.78 8.97a.75.75 0 010 1.06l-2.25 2.25a.75.75 0 01-1.06 0l-1.25-1.25a.75.75 0 111.06-1.06l.72.72 1.72-1.72a.75.75 0 011.06 0zM4.75 3h6.5a.75.75 0 010 1.5h-6.5a.75.75 0 010-1.5zM4 6.75A.75.75 0 014.75 6h6.5a.75.75 0 010 1.5h-6.5A.75.75 0 014 6.75z"
+      />
     </svg>
   );
 }
 
-function DeployIcon({ color, size = 14 }: { color: string; size?: number }) {
+function DeployIcon({ size = 14 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill={color}>
-      <path fillRule="evenodd" d="M8.53 1.22a.75.75 0 00-1.06 0L3.72 4.97a.75.75 0 001.06 1.06l2.47-2.47v6.69a.75.75 0 001.5 0V3.56l2.47 2.47a.75.75 0 101.06-1.06L8.53 1.22zM3.75 13a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5z" />
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="#dc2626">
+      <path
+        fillRule="evenodd"
+        d="M8.53 1.22a.75.75 0 00-1.06 0L3.72 4.97a.75.75 0 001.06 1.06l2.47-2.47v6.69a.75.75 0 001.5 0V3.56l2.47 2.47a.75.75 0 101.06-1.06L8.53 1.22zM3.75 13a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5z"
+      />
     </svg>
   );
 }
 
-function DoneIcon({ color, size = 14 }: { color: string; size?: number }) {
+function DoneIcon({ size = 14 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill={color}>
-      <path fillRule="evenodd" d="M8 16A8 8 0 108 0a8 8 0 000 16zm3.78-9.72a.75.75 0 00-1.06-1.06L6.75 9.19 5.28 7.72a.75.75 0 00-1.06 1.06l2 2a.75.75 0 001.06 0l4.5-4.5z" />
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="#16a34a">
+      <path
+        fillRule="evenodd"
+        d="M8 16A8 8 0 108 0a8 8 0 000 16zm3.78-9.72a.75.75 0 00-1.06-1.06L6.75 9.19 5.28 7.72a.75.75 0 00-1.06 1.06l2 2a.75.75 0 001.06 0l4.5-4.5z"
+      />
     </svg>
   );
 }
