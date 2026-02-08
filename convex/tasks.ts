@@ -9,13 +9,13 @@ export const list = query({
   },
 });
 
-// Get tasks by stage
-export const getByStage = query({
-  args: { stage: v.string() },
+// Get tasks by agent
+export const getByAgent = query({
+  args: { agent: v.string() },
   handler: async (ctx, args) => {
     return await ctx.db
       .query("tasks")
-      .withIndex("by_stage", (q) => q.eq("stage", args.stage as any))
+      .withIndex("by_agent", (q) => q.eq("agent", args.agent as any))
       .collect();
   },
 });
@@ -25,7 +25,7 @@ export const create = mutation({
   args: {
     title: v.string(),
     description: v.optional(v.string()),
-    stage: v.string(),
+    agent: v.string(),
     priority: v.string(),
     createdBy: v.string(),
   },
@@ -33,7 +33,7 @@ export const create = mutation({
     const taskId = await ctx.db.insert("tasks", {
       title: args.title,
       description: args.description,
-      stage: args.stage as any,
+      agent: args.agent as any,
       status: "queued",
       priority: args.priority as any,
       createdBy: args.createdBy,
@@ -46,7 +46,7 @@ export const create = mutation({
       taskId,
       agentName: args.createdBy,
       action: "created",
-      newStage: args.stage,
+      newAgent: args.agent,
       message: `Task created: ${args.title}`,
       timestamp: Date.now(),
     });
@@ -63,10 +63,14 @@ export const updateStatus = mutation({
     agentName: v.string(),
   },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.taskId, {
+    const patch: any = {
       status: args.status as any,
       updatedAt: Date.now(),
-    });
+    };
+    if (args.status === "completed") {
+      patch.completedAt = Date.now();
+    }
+    await ctx.db.patch(args.taskId, patch);
 
     await ctx.db.insert("activity", {
       taskId: args.taskId,
@@ -78,11 +82,11 @@ export const updateStatus = mutation({
   },
 });
 
-// Move task to different stage
-export const moveToStage = mutation({
+// Move task to a different agent's queue
+export const moveToAgent = mutation({
   args: {
     taskId: v.id("tasks"),
-    newStage: v.string(),
+    newAgent: v.string(),
     agentName: v.string(),
   },
   handler: async (ctx, args) => {
@@ -90,9 +94,8 @@ export const moveToStage = mutation({
     if (!task) throw new Error("Task not found");
 
     await ctx.db.patch(args.taskId, {
-      stage: args.newStage as any,
+      agent: args.newAgent as any,
       status: "queued",
-      assignedTo: undefined,
       updatedAt: Date.now(),
     });
 
@@ -100,38 +103,15 @@ export const moveToStage = mutation({
       taskId: args.taskId,
       agentName: args.agentName,
       action: "moved",
-      previousStage: task.stage,
-      newStage: args.newStage,
-      message: `Moved from ${task.stage} to ${args.newStage}`,
+      previousAgent: task.agent,
+      newAgent: args.newAgent,
+      message: `Moved from ${task.agent} to ${args.newAgent}`,
       timestamp: Date.now(),
     });
   },
 });
 
-// Assign task to agent
-export const assign = mutation({
-  args: {
-    taskId: v.id("tasks"),
-    agentName: v.string(),
-  },
-  handler: async (ctx, args) => {
-    await ctx.db.patch(args.taskId, {
-      assignedTo: args.agentName,
-      status: "in_progress",
-      updatedAt: Date.now(),
-    });
-
-    await ctx.db.insert("activity", {
-      taskId: args.taskId,
-      agentName: args.agentName,
-      action: "updated",
-      message: `Assigned to ${args.agentName}`,
-      timestamp: Date.now(),
-    });
-  },
-});
-
-// Complete a task
+// Complete a task (stays in the same agent's queue but marked completed)
 export const complete = mutation({
   args: {
     taskId: v.id("tasks"),
@@ -157,5 +137,15 @@ export const complete = mutation({
       message: `Task completed by ${args.agentName}`,
       timestamp: Date.now(),
     });
+  },
+});
+
+// Delete a task
+export const deleteTask = mutation({
+  args: {
+    taskId: v.id("tasks"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.taskId);
   },
 });

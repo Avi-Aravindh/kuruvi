@@ -8,7 +8,6 @@ export const register = mutation({
     displayName: v.string(),
     personality: v.string(),
     specialization: v.string(),
-    stage: v.string(),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db

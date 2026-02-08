@@ -2,18 +2,19 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
-  // Tasks in the kanban board
+  // Tasks assigned to independent agent queues
   tasks: defineTable({
     title: v.string(),
     description: v.optional(v.string()),
-    stage: v.union(
-      v.literal("inbox"),
-      v.literal("design"),
-      v.literal("backend"),
-      v.literal("frontend"),
-      v.literal("qa"),
-      v.literal("deploy"),
-      v.literal("done")
+    // Each agent has their own independent queue - these are NOT sequential stages
+    agent: v.union(
+      v.literal("ada"),
+      v.literal("bolt"),
+      v.literal("sage"),
+      v.literal("nova"),
+      v.literal("atlas"),
+      v.literal("ember"),
+      v.literal("orbit")
     ),
     status: v.union(
       v.literal("queued"),
@@ -27,10 +28,9 @@ export default defineSchema({
       v.literal("high"),
       v.literal("urgent")
     ),
-    assignedTo: v.optional(v.string()), // agent name
     createdBy: v.string(), // "user" or agent name
     artifacts: v.optional(v.object({
-      files: v.optional(v.array(v.string())), // file URLs
+      files: v.optional(v.array(v.string())),
       notes: v.optional(v.string()),
       links: v.optional(v.array(v.string()))
     })),
@@ -39,9 +39,8 @@ export default defineSchema({
     updatedAt: v.number(),
     completedAt: v.optional(v.number())
   })
-    .index("by_stage", ["stage"])
+    .index("by_agent", ["agent"])
     .index("by_status", ["status"])
-    .index("by_assignedTo", ["assignedTo"])
     .index("by_createdAt", ["createdAt"]),
 
   // Agent registry
@@ -50,22 +49,20 @@ export default defineSchema({
     displayName: v.string(),
     personality: v.string(),
     specialization: v.string(),
-    stage: v.string(), // which queue they handle
     isActive: v.boolean(),
     lastRun: v.optional(v.number()),
     tasksCompleted: v.number(),
     discordBotToken: v.optional(v.string())
   })
-    .index("by_name", ["name"])
-    .index("by_stage", ["stage"]),
+    .index("by_name", ["name"]),
 
   // Activity log for audit trail
   activity: defineTable({
     taskId: v.id("tasks"),
     agentName: v.string(),
     action: v.string(), // "created", "updated", "moved", "completed"
-    previousStage: v.optional(v.string()),
-    newStage: v.optional(v.string()),
+    previousAgent: v.optional(v.string()),
+    newAgent: v.optional(v.string()),
     message: v.optional(v.string()),
     timestamp: v.number()
   })

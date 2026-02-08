@@ -3,94 +3,95 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { useState, useRef, useEffect } from "react";
-import type { Id } from "../convex/_generated/dataModel";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
-type AgentId = "inbox" | "design" | "backend" | "frontend" | "qa" | "deploy" | "done";
+type AgentId = "ada" | "bolt" | "sage" | "nova" | "atlas" | "ember" | "orbit";
 
-interface AgentQueue {
+interface Agent {
   id: AgentId;
   name: string;
-  description: string;
-  icon: (props: { size?: number }) => React.JSX.Element;
-  color: string;
-  bgColor: string;
-  borderColor: string;
+  trait: string;
+  avatar: string;
+  accentColor: string;
+  accentBg: string;
+  accentBorder: string;
 }
 
-// ─── Agent Queue Configuration ──────────────────────────────────────────────
-const agentQueues: readonly AgentQueue[] = [
+// ─── Agent Definitions ──────────────────────────────────────────────────────
+// These are INDEPENDENT agents with personality names, NOT workflow stages.
+// Each agent has their own queue of unrelated tasks.
+const agents: readonly Agent[] = [
   {
-    id: "inbox",
-    name: "Inbox",
-    description: "Your tasks",
-    icon: InboxIcon,
-    color: "#6366f1",
-    bgColor: "#eef2ff",
-    borderColor: "#c7d2fe",
+    id: "ada",
+    name: "Ada",
+    trait: "The Architect",
+    avatar: "\u0391", // Alpha
+    accentColor: "#6366f1",
+    accentBg: "#eef2ff",
+    accentBorder: "#c7d2fe",
   },
   {
-    id: "design",
-    name: "Design",
-    description: "Design agent",
-    icon: DesignIcon,
-    color: "#9333ea",
-    bgColor: "#faf5ff",
-    borderColor: "#e9d5ff",
+    id: "bolt",
+    name: "Bolt",
+    trait: "The Builder",
+    avatar: "\u26A1",
+    accentColor: "#d97706",
+    accentBg: "#fffbeb",
+    accentBorder: "#fde68a",
   },
   {
-    id: "backend",
-    name: "Backend",
-    description: "Backend agent",
-    icon: BackendIcon,
-    color: "#2563eb",
-    bgColor: "#eff6ff",
-    borderColor: "#bfdbfe",
+    id: "sage",
+    name: "Sage",
+    trait: "The Strategist",
+    avatar: "\u2666",
+    accentColor: "#059669",
+    accentBg: "#ecfdf5",
+    accentBorder: "#a7f3d0",
   },
   {
-    id: "frontend",
-    name: "Frontend",
-    description: "Frontend agent",
-    icon: FrontendIcon,
-    color: "#059669",
-    bgColor: "#ecfdf5",
-    borderColor: "#a7f3d0",
+    id: "nova",
+    name: "Nova",
+    trait: "The Creator",
+    avatar: "\u2726",
+    accentColor: "#9333ea",
+    accentBg: "#faf5ff",
+    accentBorder: "#e9d5ff",
   },
   {
-    id: "qa",
-    name: "QA",
-    description: "QA agent",
-    icon: QAIcon,
-    color: "#d97706",
-    bgColor: "#fffbeb",
-    borderColor: "#fde68a",
+    id: "atlas",
+    name: "Atlas",
+    trait: "The Organizer",
+    avatar: "\u25CE",
+    accentColor: "#2563eb",
+    accentBg: "#eff6ff",
+    accentBorder: "#bfdbfe",
   },
   {
-    id: "deploy",
-    name: "Deploy",
-    description: "Deploy agent",
-    icon: DeployIcon,
-    color: "#dc2626",
-    bgColor: "#fef2f2",
-    borderColor: "#fecaca",
+    id: "ember",
+    name: "Ember",
+    trait: "The Debugger",
+    avatar: "\u2740",
+    accentColor: "#dc2626",
+    accentBg: "#fef2f2",
+    accentBorder: "#fecaca",
   },
   {
-    id: "done",
-    name: "Done",
-    description: "Completed",
-    icon: DoneIcon,
-    color: "#16a34a",
-    bgColor: "#f0fdf4",
-    borderColor: "#bbf7d0",
+    id: "orbit",
+    name: "Orbit",
+    trait: "The Explorer",
+    avatar: "\u25E0",
+    accentColor: "#0891b2",
+    accentBg: "#ecfeff",
+    accentBorder: "#a5f3fc",
   },
 ];
 
 // ─── Priority Configuration ─────────────────────────────────────────────────
 const priorityConfig = {
-  urgent: { label: "Urgent", color: "#dc2626", bg: "#fef2f2", border: "#fecaca", dot: "#dc2626" },
-  high: { label: "High", color: "#ea580c", bg: "#fff7ed", border: "#fed7aa", dot: "#ea580c" },
-  medium: { label: "Medium", color: "#6366f1", bg: "#eef2ff", border: "#c7d2fe", dot: "#6366f1" },
-  low: { label: "Low", color: "#9ca3af", bg: "#f9fafb", border: "#e5e7eb", dot: "#9ca3af" },
+  urgent: { label: "Urgent", color: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
+  high: { label: "High", color: "#ea580c", bg: "#fff7ed", border: "#fed7aa" },
+  medium: { label: "Medium", color: "#6366f1", bg: "#eef2ff", border: "#c7d2fe" },
+  low: { label: "Low", color: "#9ca3af", bg: "#f9fafb", border: "#e5e7eb" },
 } as const;
 
 type Priority = keyof typeof priorityConfig;
@@ -99,42 +100,45 @@ type Priority = keyof typeof priorityConfig;
 export default function Home() {
   const tasks = useQuery(api.tasks.list) || [];
   const createTask = useMutation(api.tasks.create);
-  const moveTask = useMutation(api.tasks.moveToStage);
+  const moveTask = useMutation(api.tasks.moveToAgent);
+  const updateStatus = useMutation(api.tasks.updateStatus);
+  const deleteTask = useMutation(api.tasks.deleteTask);
 
   const [showNewTask, setShowNewTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
-  const [newTaskStage, setNewTaskStage] = useState<AgentId>("inbox");
+  const [newTaskAgent, setNewTaskAgent] = useState<AgentId>("ada");
   const [newTaskPriority, setNewTaskPriority] = useState<Priority>("medium");
   const [expandedTask, setExpandedTask] = useState<string | null>(null);
+  const [showCompleted, setShowCompleted] = useState<Record<string, boolean>>({});
 
   const handleCreateTask = async () => {
     if (!newTaskTitle.trim()) return;
     await createTask({
       title: newTaskTitle,
       description: newTaskDescription || undefined,
-      stage: newTaskStage,
+      agent: newTaskAgent,
       priority: newTaskPriority,
       createdBy: "user",
     });
     setNewTaskTitle("");
     setNewTaskDescription("");
     setNewTaskPriority("medium");
-    setNewTaskStage("inbox");
+    setNewTaskAgent("ada");
     setShowNewTask(false);
   };
 
-  const tasksByAgent = agentQueues.reduce(
-    (acc, queue) => {
-      acc[queue.id] = tasks.filter((t) => t.stage === queue.id);
+  // Group tasks by agent
+  const tasksByAgent = agents.reduce(
+    (acc, agent) => {
+      acc[agent.id] = tasks.filter((t: any) => t.agent === agent.id);
       return acc;
     },
     {} as Record<AgentId, typeof tasks>
   );
 
-  const totalTasks = tasks.length;
-  const activeTasks = tasks.filter((t) => t.stage !== "done").length;
-  const completedTasks = tasks.filter((t) => t.stage === "done").length;
+  const totalActive = tasks.filter((t: any) => t.status !== "completed").length;
+  const totalCompleted = tasks.filter((t: any) => t.status === "completed").length;
 
   return (
     <div className="h-screen flex flex-col overflow-hidden" style={{ background: "#fafbfc" }}>
@@ -148,7 +152,6 @@ export default function Home() {
       >
         <div className="flex items-center justify-between px-6 h-14">
           <div className="flex items-center gap-5">
-            {/* Logo */}
             <div className="flex items-center gap-2.5">
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center"
@@ -181,25 +184,18 @@ export default function Home() {
               </span>
             </div>
 
-            {/* Stats */}
             <div
               className="hidden sm:flex items-center gap-3"
               style={{ fontSize: "13px", color: "#6b7280" }}
             >
               <div className="flex items-center gap-1.5">
-                <div
-                  className="w-2 h-2 rounded-full"
-                  style={{ background: "#6366f1" }}
-                />
-                <span>{activeTasks} active</span>
+                <div className="w-2 h-2 rounded-full" style={{ background: "#6366f1" }} />
+                <span>{totalActive} active</span>
               </div>
               <span style={{ color: "#d1d5db" }}>/</span>
               <div className="flex items-center gap-1.5">
-                <div
-                  className="w-2 h-2 rounded-full"
-                  style={{ background: "#16a34a" }}
-                />
-                <span>{completedTasks} done</span>
+                <div className="w-2 h-2 rounded-full" style={{ background: "#16a34a" }} />
+                <span>{totalCompleted} done</span>
               </div>
             </div>
           </div>
@@ -219,12 +215,8 @@ export default function Home() {
               cursor: "pointer",
               transition: "background 0.15s",
             }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.background = "#4f46e5")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.background = "#6366f1")
-            }
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#4f46e5")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "#6366f1")}
           >
             <PlusIcon />
             <span className="hidden sm:inline">New Task</span>
@@ -232,16 +224,18 @@ export default function Home() {
         </div>
       </header>
 
-      {/* ─── Agent Queues Board ────────────────────────────────────── */}
+      {/* ─── Agent Queues ────────────────────────────────────────────── */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
         <div className="flex h-full" style={{ minWidth: "fit-content" }}>
-          {agentQueues.map((queue) => {
-            const queueTasks = tasksByAgent[queue.id] || [];
-            const QueueIcon = queue.icon;
+          {agents.map((agent) => {
+            const agentTasks = tasksByAgent[agent.id] || [];
+            const activeTasks = agentTasks.filter((t: any) => t.status !== "completed");
+            const completedTasks = agentTasks.filter((t: any) => t.status === "completed");
+            const isShowingCompleted = showCompleted[agent.id] || false;
 
             return (
               <div
-                key={queue.id}
+                key={agent.id}
                 className="flex flex-col h-full"
                 style={{
                   width: "296px",
@@ -249,101 +243,184 @@ export default function Home() {
                   borderRight: "1px solid #f0f0f0",
                 }}
               >
-                {/* Column Header */}
+                {/* ─── Agent Header ─── */}
                 <div
-                  className="flex-shrink-0 flex items-center justify-between"
+                  className="flex-shrink-0"
                   style={{ padding: "16px 16px 12px" }}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <div
-                      className="w-7 h-7 rounded-md flex items-center justify-center"
-                      style={{
-                        background: queue.bgColor,
-                        border: `1px solid ${queue.borderColor}`,
-                      }}
-                    >
-                      <QueueIcon size={14} />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span
-                          style={{
-                            fontSize: "13px",
-                            fontWeight: 600,
-                            color: "#111827",
-                          }}
-                        >
-                          {queue.name}
-                        </span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {/* Agent Avatar */}
+                      <div
+                        className="flex items-center justify-center"
+                        style={{
+                          width: "36px",
+                          height: "36px",
+                          borderRadius: "10px",
+                          background: agent.accentBg,
+                          border: `1.5px solid ${agent.accentBorder}`,
+                          fontSize: "16px",
+                          color: agent.accentColor,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {agent.avatar}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span
+                            style={{
+                              fontSize: "14px",
+                              fontWeight: 600,
+                              color: "#111827",
+                            }}
+                          >
+                            {agent.name}
+                          </span>
+                          {activeTasks.length > 0 && (
+                            <span
+                              style={{
+                                fontSize: "12px",
+                                fontWeight: 500,
+                                color: agent.accentColor,
+                                background: agent.accentBg,
+                                padding: "1px 7px",
+                                borderRadius: "10px",
+                              }}
+                            >
+                              {activeTasks.length}
+                            </span>
+                          )}
+                        </div>
                         <span
                           style={{
                             fontSize: "12px",
-                            fontWeight: 500,
                             color: "#9ca3af",
-                            background: "#f3f4f6",
-                            padding: "1px 6px",
-                            borderRadius: "10px",
+                            lineHeight: "1.2",
                           }}
                         >
-                          {queueTasks.length}
+                          {agent.trait}
                         </span>
                       </div>
                     </div>
+
+                    <button
+                      onClick={() => {
+                        setNewTaskAgent(agent.id);
+                        setShowNewTask(true);
+                      }}
+                      className="flex items-center justify-center"
+                      style={{
+                        width: "28px",
+                        height: "28px",
+                        borderRadius: "7px",
+                        border: "none",
+                        background: "transparent",
+                        color: "#9ca3af",
+                        cursor: "pointer",
+                        transition: "all 0.15s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = agent.accentBg;
+                        e.currentTarget.style.color = agent.accentColor;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "transparent";
+                        e.currentTarget.style.color = "#9ca3af";
+                      }}
+                    >
+                      <PlusIcon />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => {
-                      setNewTaskStage(queue.id);
-                      setShowNewTask(true);
-                    }}
-                    className="flex items-center justify-center"
-                    style={{
-                      width: "26px",
-                      height: "26px",
-                      borderRadius: "6px",
-                      border: "none",
-                      background: "transparent",
-                      color: "#9ca3af",
-                      cursor: "pointer",
-                      transition: "all 0.15s",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "#f3f4f6";
-                      e.currentTarget.style.color = "#6b7280";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "transparent";
-                      e.currentTarget.style.color = "#9ca3af";
-                    }}
-                  >
-                    <PlusIcon />
-                  </button>
                 </div>
 
-                {/* Task List */}
+                {/* ─── Task List ─── */}
                 <div
-                  className="flex-1 overflow-y-auto kanban-column"
+                  className="flex-1 overflow-y-auto agent-queue"
                   style={{ padding: "0 8px 12px" }}
                 >
                   <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                    {queueTasks.map((task) => (
+                    {/* Active tasks */}
+                    {activeTasks.map((task: any) => (
                       <TaskCard
                         key={task._id}
                         task={task}
-                        queue={queue}
-                        allQueues={agentQueues}
+                        agent={agent}
+                        allAgents={agents}
                         moveTask={moveTask}
+                        updateStatus={updateStatus}
+                        deleteTask={deleteTask}
                         isExpanded={expandedTask === task._id}
                         onToggleExpand={() =>
-                          setExpandedTask(
-                            expandedTask === task._id ? null : task._id
-                          )
+                          setExpandedTask(expandedTask === task._id ? null : task._id)
                         }
                       />
                     ))}
                   </div>
 
+                  {/* Completed tasks section */}
+                  {completedTasks.length > 0 && (
+                    <div style={{ marginTop: activeTasks.length > 0 ? "8px" : "0" }}>
+                      <button
+                        onClick={() =>
+                          setShowCompleted((prev) => ({
+                            ...prev,
+                            [agent.id]: !prev[agent.id],
+                          }))
+                        }
+                        className="flex items-center gap-2 w-full"
+                        style={{
+                          padding: "6px 12px",
+                          background: "transparent",
+                          border: "none",
+                          cursor: "pointer",
+                          fontSize: "12px",
+                          fontWeight: 500,
+                          color: "#9ca3af",
+                          transition: "color 0.15s",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = "#6b7280")}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = "#9ca3af")}
+                      >
+                        <svg
+                          width="10"
+                          height="10"
+                          viewBox="0 0 10 10"
+                          fill="currentColor"
+                          style={{
+                            transform: isShowingCompleted ? "rotate(90deg)" : "rotate(0deg)",
+                            transition: "transform 0.15s ease",
+                          }}
+                        >
+                          <path d="M3 1l4 4-4 4" />
+                        </svg>
+                        <span>{completedTasks.length} completed</span>
+                      </button>
+
+                      {isShowingCompleted && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "2px", marginTop: "2px" }}>
+                          {completedTasks.map((task: any) => (
+                            <TaskCard
+                              key={task._id}
+                              task={task}
+                              agent={agent}
+                              allAgents={agents}
+                              moveTask={moveTask}
+                              updateStatus={updateStatus}
+                              deleteTask={deleteTask}
+                              isExpanded={expandedTask === task._id}
+                              onToggleExpand={() =>
+                                setExpandedTask(expandedTask === task._id ? null : task._id)
+                              }
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Empty state */}
-                  {queueTasks.length === 0 && (
+                  {agentTasks.length === 0 && (
                     <div
                       className="flex flex-col items-center justify-center"
                       style={{
@@ -351,15 +428,15 @@ export default function Home() {
                         color: "#d1d5db",
                       }}
                     >
-                      <QueueIcon size={28} />
+                      <span style={{ fontSize: "28px", opacity: 0.4 }}>{agent.avatar}</span>
                       <span
                         style={{
                           fontSize: "13px",
                           marginTop: "8px",
-                          color: "#9ca3af",
+                          color: "#c4c8cf",
                         }}
                       >
-                        No tasks
+                        No tasks yet
                       </span>
                     </div>
                   )}
@@ -377,8 +454,8 @@ export default function Home() {
           setTitle={setNewTaskTitle}
           description={newTaskDescription}
           setDescription={setNewTaskDescription}
-          stage={newTaskStage}
-          setStage={setNewTaskStage}
+          agent={newTaskAgent}
+          setAgent={setNewTaskAgent}
           priority={newTaskPriority}
           setPriority={setNewTaskPriority}
           onSubmit={handleCreateTask}
@@ -396,21 +473,26 @@ export default function Home() {
 // ─── Task Card ──────────────────────────────────────────────────────────────
 function TaskCard({
   task,
-  queue,
-  allQueues,
+  agent,
+  allAgents,
   moveTask,
+  updateStatus,
+  deleteTask,
   isExpanded,
   onToggleExpand,
 }: {
   task: any;
-  queue: AgentQueue;
-  allQueues: readonly AgentQueue[];
+  agent: Agent;
+  allAgents: readonly Agent[];
   moveTask: any;
+  updateStatus: any;
+  deleteTask: any;
   isExpanded: boolean;
   onToggleExpand: () => void;
 }) {
   const priority = priorityConfig[task.priority as Priority];
   const [showMoveMenu, setShowMoveMenu] = useState(false);
+  const isCompleted = task.status === "completed";
 
   return (
     <div
@@ -419,8 +501,9 @@ function TaskCard({
         borderRadius: "8px",
         padding: "10px 12px",
         cursor: "pointer",
-        background: "#ffffff",
+        background: isCompleted ? "#fafbfc" : "#ffffff",
         border: "1px solid transparent",
+        opacity: isCompleted ? 0.65 : 1,
         transition: "all 0.15s ease",
       }}
       onClick={onToggleExpand}
@@ -429,25 +512,39 @@ function TaskCard({
         e.currentTarget.style.borderColor = "#e5e7eb";
         e.currentTarget.style.boxShadow =
           "0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)";
+        e.currentTarget.style.opacity = "1";
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.background = "#ffffff";
+        e.currentTarget.style.background = isCompleted ? "#fafbfc" : "#ffffff";
         e.currentTarget.style.borderColor = "transparent";
         e.currentTarget.style.boxShadow = "none";
+        e.currentTarget.style.opacity = isCompleted ? "0.65" : "1";
       }}
     >
       {/* Title row */}
       <div className="flex items-start gap-2.5">
         <div className="flex-shrink-0" style={{ marginTop: "2px" }}>
-          <StatusIndicator status={task.status} />
+          <StatusIndicator
+            status={task.status}
+            accentColor={agent.accentColor}
+            onClick={(e: React.MouseEvent) => {
+              e.stopPropagation();
+              if (task.status === "completed") {
+                updateStatus({ taskId: task._id, status: "queued", agentName: "user" });
+              } else {
+                updateStatus({ taskId: task._id, status: "completed", agentName: "user" });
+              }
+            }}
+          />
         </div>
         <div className="flex-1" style={{ minWidth: 0 }}>
           <p
             style={{
               fontSize: "13px",
               fontWeight: 500,
-              lineHeight: "1.4",
-              color: "#111827",
+              lineHeight: "1.45",
+              color: isCompleted ? "#9ca3af" : "#111827",
+              textDecoration: isCompleted ? "line-through" : "none",
               margin: 0,
               display: "-webkit-box",
               WebkitLineClamp: 2,
@@ -463,13 +560,13 @@ function TaskCard({
       {/* Meta row */}
       <div
         className="flex items-center gap-2"
-        style={{ marginTop: "8px", marginLeft: "22px" }}
+        style={{ marginTop: "7px", marginLeft: "22px" }}
       >
         <span
           style={{
             fontSize: "12px",
             fontWeight: 500,
-            padding: "2px 8px",
+            padding: "1px 7px",
             borderRadius: "4px",
             color: priority.color,
             background: priority.bg,
@@ -479,13 +576,37 @@ function TaskCard({
           {priority.label}
         </span>
 
-        {task.assignedTo && (
+        {task.status === "in_progress" && (
           <span
-            className="flex items-center gap-1"
-            style={{ fontSize: "12px", color: "#9ca3af" }}
+            style={{
+              fontSize: "11px",
+              fontWeight: 500,
+              color: "#f59e0b",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+            }}
           >
-            <UserIcon />
-            {task.assignedTo}
+            <span className="pulse-dot" style={{
+              width: "5px",
+              height: "5px",
+              borderRadius: "50%",
+              background: "#f59e0b",
+              display: "inline-block",
+            }} />
+            Working
+          </span>
+        )}
+
+        {task.status === "blocked" && (
+          <span
+            style={{
+              fontSize: "11px",
+              fontWeight: 500,
+              color: "#ef4444",
+            }}
+          >
+            Blocked
           </span>
         )}
       </div>
@@ -498,8 +619,8 @@ function TaskCard({
               style={{
                 fontSize: "13px",
                 color: "#6b7280",
-                lineHeight: "1.5",
-                margin: "0 0 12px 0",
+                lineHeight: "1.55",
+                margin: "0 0 10px 0",
               }}
             >
               {task.description}
@@ -512,17 +633,18 @@ function TaskCard({
             style={{
               fontSize: "12px",
               color: "#9ca3af",
-              marginBottom: "12px",
+              marginBottom: "10px",
             }}
           >
             <span>Created {formatRelativeTime(task.createdAt)}</span>
             {task.completedAt && (
-              <span>Completed {formatRelativeTime(task.completedAt)}</span>
+              <span>Done {formatRelativeTime(task.completedAt)}</span>
             )}
           </div>
 
-          {/* Move to agent queue */}
-          {queue.id !== "done" && (
+          {/* Actions */}
+          <div className="flex items-center gap-3">
+            {/* Reassign to different agent */}
             <div style={{ position: "relative" }}>
               <button
                 onClick={(e) => {
@@ -533,33 +655,28 @@ function TaskCard({
                 style={{
                   fontSize: "12px",
                   fontWeight: 500,
-                  color: "#6366f1",
+                  color: agent.accentColor,
                   background: "none",
                   border: "none",
                   cursor: "pointer",
                   padding: "4px 0",
-                  transition: "color 0.15s",
+                  transition: "opacity 0.15s",
                 }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.color = "#4f46e5")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.color = "#6366f1")
-                }
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.7")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
               >
                 <MoveIcon />
-                Move to...
+                Reassign
               </button>
 
-              {/* Move dropdown */}
               {showMoveMenu && (
                 <MoveMenu
-                  currentQueueId={queue.id}
-                  allQueues={allQueues}
+                  currentAgentId={agent.id}
+                  allAgents={allAgents}
                   onMove={(targetId) => {
                     moveTask({
                       taskId: task._id,
-                      newStage: targetId,
+                      newAgent: targetId,
                       agentName: "user",
                     });
                     setShowMoveMenu(false);
@@ -568,7 +685,31 @@ function TaskCard({
                 />
               )}
             </div>
-          )}
+
+            {/* Delete */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteTask({ taskId: task._id });
+              }}
+              className="flex items-center gap-1.5"
+              style={{
+                fontSize: "12px",
+                fontWeight: 500,
+                color: "#d1d5db",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: "4px 0",
+                transition: "color 0.15s",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#ef4444")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "#d1d5db")}
+            >
+              <TrashIcon />
+              Delete
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -577,13 +718,13 @@ function TaskCard({
 
 // ─── Move Menu ──────────────────────────────────────────────────────────────
 function MoveMenu({
-  currentQueueId,
-  allQueues,
+  currentAgentId,
+  allAgents,
   onMove,
   onClose,
 }: {
-  currentQueueId: AgentId;
-  allQueues: readonly AgentQueue[];
+  currentAgentId: AgentId;
+  allAgents: readonly Agent[];
   onMove: (targetId: AgentId) => void;
   onClose: () => void;
 }) {
@@ -609,55 +750,72 @@ function MoveMenu({
         marginTop: "4px",
         background: "#ffffff",
         border: "1px solid #e5e7eb",
-        borderRadius: "8px",
+        borderRadius: "10px",
         boxShadow:
           "0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05)",
         padding: "4px",
         zIndex: 10,
-        minWidth: "180px",
+        minWidth: "200px",
       }}
       onClick={(e) => e.stopPropagation()}
     >
-      {allQueues
-        .filter((q) => q.id !== currentQueueId)
-        .map((q) => {
-          const QIcon = q.icon;
-          return (
-            <button
-              key={q.id}
-              onClick={() => onMove(q.id)}
-              className="flex items-center gap-2.5 w-full"
+      <div
+        style={{
+          padding: "6px 10px 4px",
+          fontSize: "11px",
+          fontWeight: 600,
+          color: "#9ca3af",
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+        }}
+      >
+        Reassign to
+      </div>
+      {allAgents
+        .filter((a) => a.id !== currentAgentId)
+        .map((a) => (
+          <button
+            key={a.id}
+            onClick={() => onMove(a.id)}
+            className="flex items-center gap-2.5 w-full"
+            style={{
+              padding: "7px 10px",
+              borderRadius: "7px",
+              border: "none",
+              background: "transparent",
+              cursor: "pointer",
+              fontSize: "13px",
+              fontWeight: 400,
+              color: "#374151",
+              transition: "background 0.1s",
+              textAlign: "left",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = a.accentBg)}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+          >
+            <div
+              className="flex items-center justify-center"
               style={{
-                padding: "7px 10px",
+                width: "22px",
+                height: "22px",
                 borderRadius: "6px",
-                border: "none",
-                background: "transparent",
-                cursor: "pointer",
-                fontSize: "13px",
-                fontWeight: 400,
-                color: "#374151",
-                transition: "background 0.1s",
-                textAlign: "left",
+                background: a.accentBg,
+                border: `1px solid ${a.accentBorder}`,
+                fontSize: "11px",
+                color: a.accentColor,
+                fontWeight: 600,
               }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.background = "#f3f4f6")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.background = "transparent")
-              }
             >
-              <div
-                className="w-5 h-5 rounded flex items-center justify-center"
-                style={{
-                  background: q.bgColor,
-                }}
-              >
-                <QIcon size={12} />
-              </div>
-              {q.name}
-            </button>
-          );
-        })}
+              {a.avatar}
+            </div>
+            <div>
+              <span style={{ fontWeight: 500 }}>{a.name}</span>
+              <span style={{ color: "#9ca3af", marginLeft: "6px", fontSize: "12px" }}>
+                {a.trait}
+              </span>
+            </div>
+          </button>
+        ))}
     </div>
   );
 }
@@ -668,8 +826,8 @@ function NewTaskModal({
   setTitle,
   description,
   setDescription,
-  stage,
-  setStage,
+  agent,
+  setAgent,
   priority,
   setPriority,
   onSubmit,
@@ -679,8 +837,8 @@ function NewTaskModal({
   setTitle: (v: string) => void;
   description: string;
   setDescription: (v: string) => void;
-  stage: AgentId;
-  setStage: (v: AgentId) => void;
+  agent: AgentId;
+  setAgent: (v: AgentId) => void;
   priority: Priority;
   setPriority: (v: Priority) => void;
   onSubmit: () => void;
@@ -700,11 +858,13 @@ function NewTaskModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
+  const selectedAgent = agents.find((a) => a.id === agent)!;
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center modal-overlay"
       style={{
-        backgroundColor: "rgba(0, 0, 0, 0.2)",
+        backgroundColor: "rgba(0, 0, 0, 0.15)",
         backdropFilter: "blur(2px)",
         paddingTop: "15vh",
       }}
@@ -715,7 +875,7 @@ function NewTaskModal({
       <div
         className="modal-content w-full max-w-lg mx-4 overflow-hidden"
         style={{
-          borderRadius: "12px",
+          borderRadius: "14px",
           background: "#ffffff",
           border: "1px solid #e5e7eb",
           boxShadow:
@@ -729,7 +889,7 @@ function NewTaskModal({
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Task title"
+            placeholder="What needs to be done?"
             style={{
               width: "100%",
               fontSize: "16px",
@@ -754,7 +914,7 @@ function NewTaskModal({
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Add a description..."
+            placeholder="Add details..."
             rows={3}
             style={{
               width: "100%",
@@ -765,6 +925,7 @@ function NewTaskModal({
               color: "#6b7280",
               resize: "none",
               padding: 0,
+              lineHeight: "1.55",
             }}
           />
         </div>
@@ -774,29 +935,29 @@ function NewTaskModal({
           className="flex items-center gap-2 flex-wrap"
           style={{ padding: "12px 20px" }}
         >
-          {/* Agent queue selector */}
+          {/* Agent selector */}
           <div style={{ position: "relative" }}>
             <select
-              value={stage}
-              onChange={(e) => setStage(e.target.value as AgentId)}
+              value={agent}
+              onChange={(e) => setAgent(e.target.value as AgentId)}
               style={{
                 appearance: "none",
-                height: "30px",
+                height: "32px",
                 padding: "0 28px 0 10px",
-                borderRadius: "6px",
+                borderRadius: "8px",
                 fontSize: "13px",
                 fontWeight: 500,
-                background: "#f9fafb",
-                border: "1px solid #e5e7eb",
-                color: "#374151",
+                background: selectedAgent.accentBg,
+                border: `1px solid ${selectedAgent.accentBorder}`,
+                color: selectedAgent.accentColor,
                 cursor: "pointer",
                 outline: "none",
-                transition: "border-color 0.15s",
+                transition: "all 0.15s",
               }}
             >
-              {agentQueues.map((q) => (
-                <option key={q.id} value={q.id}>
-                  {q.name}
+              {agents.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.avatar} {a.name} - {a.trait}
                 </option>
               ))}
             </select>
@@ -810,9 +971,9 @@ function NewTaskModal({
               onChange={(e) => setPriority(e.target.value as Priority)}
               style={{
                 appearance: "none",
-                height: "30px",
+                height: "32px",
                 padding: "0 28px 0 10px",
-                borderRadius: "6px",
+                borderRadius: "8px",
                 fontSize: "13px",
                 fontWeight: 500,
                 background: "#f9fafb",
@@ -855,7 +1016,7 @@ function NewTaskModal({
               style={{
                 height: "34px",
                 padding: "0 12px",
-                borderRadius: "6px",
+                borderRadius: "8px",
                 fontSize: "13px",
                 fontWeight: 500,
                 color: "#6b7280",
@@ -881,7 +1042,7 @@ function NewTaskModal({
               style={{
                 height: "34px",
                 padding: "0 16px",
-                borderRadius: "6px",
+                borderRadius: "8px",
                 fontSize: "13px",
                 fontWeight: 500,
                 background: title.trim() ? "#6366f1" : "#e5e7eb",
@@ -907,16 +1068,29 @@ function NewTaskModal({
 }
 
 // ─── Status Indicator ───────────────────────────────────────────────────────
-function StatusIndicator({ status }: { status: string }) {
+function StatusIndicator({
+  status,
+  accentColor,
+  onClick,
+}: {
+  status: string;
+  accentColor: string;
+  onClick: (e: React.MouseEvent) => void;
+}) {
   if (status === "completed") {
     return (
-      <div
+      <button
+        onClick={onClick}
         className="flex items-center justify-center"
         style={{
           width: "16px",
           height: "16px",
           borderRadius: "50%",
           background: "#16a34a",
+          border: "none",
+          cursor: "pointer",
+          padding: 0,
+          transition: "opacity 0.15s",
         }}
       >
         <svg
@@ -931,18 +1105,23 @@ function StatusIndicator({ status }: { status: string }) {
         >
           <polyline points="2,6 5,9 10,3" />
         </svg>
-      </div>
+      </button>
     );
   }
   if (status === "in_progress") {
     return (
-      <div
+      <button
+        onClick={onClick}
         className="flex items-center justify-center"
         style={{
           width: "16px",
           height: "16px",
           borderRadius: "50%",
-          border: "2px solid #f59e0b",
+          border: `2px solid ${accentColor}`,
+          background: "transparent",
+          cursor: "pointer",
+          padding: 0,
+          transition: "all 0.15s",
         }}
       >
         <div
@@ -951,21 +1130,25 @@ function StatusIndicator({ status }: { status: string }) {
             width: "6px",
             height: "6px",
             borderRadius: "50%",
-            background: "#f59e0b",
+            background: accentColor,
           }}
         />
-      </div>
+      </button>
     );
   }
   if (status === "blocked") {
     return (
-      <div
+      <button
+        onClick={onClick}
         className="flex items-center justify-center"
         style={{
           width: "16px",
           height: "16px",
           borderRadius: "50%",
           border: "2px solid #ef4444",
+          background: "transparent",
+          cursor: "pointer",
+          padding: 0,
         }}
       >
         <div
@@ -976,18 +1159,25 @@ function StatusIndicator({ status }: { status: string }) {
             borderRadius: "2px",
           }}
         />
-      </div>
+      </button>
     );
   }
   // queued
   return (
-    <div
+    <button
+      onClick={onClick}
       style={{
         width: "16px",
         height: "16px",
         borderRadius: "50%",
         border: "2px solid #d1d5db",
+        background: "transparent",
+        cursor: "pointer",
+        padding: 0,
+        transition: "border-color 0.15s",
       }}
+      onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#16a34a")}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#d1d5db")}
     />
   );
 }
@@ -1039,10 +1229,21 @@ function MoveIcon() {
   );
 }
 
-function UserIcon() {
+function TrashIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" style={{ opacity: 0.5 }}>
-      <path d="M10.561 8.073a6.005 6.005 0 013.432 5.142.75.75 0 11-1.498.07 4.5 4.5 0 00-8.99 0 .75.75 0 01-1.498-.07 6.005 6.005 0 013.431-5.142 3.999 3.999 0 115.123 0zM10.5 5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M2 4h12" />
+      <path d="M5 4V2.5A.5.5 0 015.5 2h5a.5.5 0 01.5.5V4" />
+      <path d="M12.5 4v9.5a1 1 0 01-1 1h-7a1 1 0 01-1-1V4" />
     </svg>
   );
 }
@@ -1059,78 +1260,6 @@ function ChevronDownIcon({ className = "" }: { className?: string }) {
       <path
         fillRule="evenodd"
         d="M4.22 6.22a.75.75 0 011.06 0L8 8.94l2.72-2.72a.75.75 0 111.06 1.06l-3.25 3.25a.75.75 0 01-1.06 0L4.22 7.28a.75.75 0 010-1.06z"
-      />
-    </svg>
-  );
-}
-
-// ─── Agent Queue Icons ──────────────────────────────────────────────────────
-function InboxIcon({ size = 14 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="#6366f1">
-      <path d="M1.5 3A1.5 1.5 0 013 1.5h10A1.5 1.5 0 0114.5 3v4.134a1 1 0 01-.232.636L11.5 11.234V13.5a1 1 0 01-1 1h-5a1 1 0 01-1-1v-2.266L1.732 7.77A1 1 0 011.5 7.134V3zm1.5 0v4.134l2.768 3.464a1 1 0 01.232.636V13.5h4v-2.266a1 1 0 01.232-.636L13 7.134V3H3z" />
-    </svg>
-  );
-}
-
-function DesignIcon({ size = 14 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="#9333ea">
-      <path d="M8 1a.75.75 0 01.75.75v2.5a.75.75 0 01-1.5 0v-2.5A.75.75 0 018 1zm5.303 2.697a.75.75 0 010 1.06l-1.768 1.768a.75.75 0 01-1.06-1.06l1.767-1.768a.75.75 0 011.061 0zM15 8a.75.75 0 01-.75.75h-2.5a.75.75 0 010-1.5h2.5A.75.75 0 0115 8zm-2.697 5.303a.75.75 0 01-1.06 0l-1.768-1.768a.75.75 0 111.06-1.06l1.768 1.767a.75.75 0 010 1.061zM8 11.25a.75.75 0 01.75.75v2.5a.75.75 0 01-1.5 0V12a.75.75 0 01.75-.75zm-5.303-2.553a.75.75 0 010-1.06l1.768-1.768a.75.75 0 011.06 1.06L3.758 8.697a.75.75 0 01-1.061 0zM1 8a.75.75 0 01.75-.75h2.5a.75.75 0 010 1.5h-2.5A.75.75 0 011 8zm2.697-5.303a.75.75 0 011.06 0l1.768 1.768a.75.75 0 01-1.06 1.06L3.697 3.758a.75.75 0 010-1.061zM8 5.5a2.5 2.5 0 100 5 2.5 2.5 0 000-5z" />
-    </svg>
-  );
-}
-
-function BackendIcon({ size = 14 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="#2563eb">
-      <path
-        fillRule="evenodd"
-        d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v3.585a.746.746 0 010 .83v5.085A1.75 1.75 0 0114.25 13H1.75A1.75 1.75 0 010 11.25V6.165a.746.746 0 010-.83V1.75zm1.75-.25a.25.25 0 00-.25.25v3h13V1.75a.25.25 0 00-.25-.25H1.75zM1.5 6.25v5a.25.25 0 00.25.25h12.5a.25.25 0 00.25-.25v-5h-13zM3 8.75A.75.75 0 013.75 8h4.5a.75.75 0 010 1.5h-4.5A.75.75 0 013 8.75zM3.75 3a.75.75 0 000 1.5h.5a.75.75 0 000-1.5h-.5zM6 3.75a.75.75 0 01.75-.75h.5a.75.75 0 010 1.5h-.5A.75.75 0 016 3.75z"
-      />
-    </svg>
-  );
-}
-
-function FrontendIcon({ size = 14 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="#059669">
-      <path
-        fillRule="evenodd"
-        d="M4.72 3.22a.75.75 0 011.06 1.06L2.06 8l3.72 3.72a.75.75 0 11-1.06 1.06L.47 8.53a.75.75 0 010-1.06l4.25-4.25zm6.56 0a.75.75 0 10-1.06 1.06L13.94 8l-3.72 3.72a.75.75 0 101.06 1.06l4.25-4.25a.75.75 0 000-1.06l-4.25-4.25z"
-      />
-    </svg>
-  );
-}
-
-function QAIcon({ size = 14 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="#d97706">
-      <path
-        fillRule="evenodd"
-        d="M2.5 1.75v11.5c0 .138.112.25.25.25h3.17a.75.75 0 010 1.5H2.75A1.75 1.75 0 011 13.25V1.75C1 .784 1.784 0 2.75 0h10.5C14.216 0 15 .784 15 1.75v7.5a.75.75 0 01-1.5 0v-7.5a.25.25 0 00-.25-.25H2.75a.25.25 0 00-.25.25zm8.78 8.97a.75.75 0 010 1.06l-2.25 2.25a.75.75 0 01-1.06 0l-1.25-1.25a.75.75 0 111.06-1.06l.72.72 1.72-1.72a.75.75 0 011.06 0zM4.75 3h6.5a.75.75 0 010 1.5h-6.5a.75.75 0 010-1.5zM4 6.75A.75.75 0 014.75 6h6.5a.75.75 0 010 1.5h-6.5A.75.75 0 014 6.75z"
-      />
-    </svg>
-  );
-}
-
-function DeployIcon({ size = 14 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="#dc2626">
-      <path
-        fillRule="evenodd"
-        d="M8.53 1.22a.75.75 0 00-1.06 0L3.72 4.97a.75.75 0 001.06 1.06l2.47-2.47v6.69a.75.75 0 001.5 0V3.56l2.47 2.47a.75.75 0 101.06-1.06L8.53 1.22zM3.75 13a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5z"
-      />
-    </svg>
-  );
-}
-
-function DoneIcon({ size = 14 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="#16a34a">
-      <path
-        fillRule="evenodd"
-        d="M8 16A8 8 0 108 0a8 8 0 000 16zm3.78-9.72a.75.75 0 00-1.06-1.06L6.75 9.19 5.28 7.72a.75.75 0 00-1.06 1.06l2 2a.75.75 0 001.06 0l4.5-4.5z"
       />
     </svg>
   );

@@ -48,8 +48,8 @@ body {
   background: #9ca3af;
 }
 
-/* Column scrollable area */
-.kanban-column {
+/* Agent queue scrollable area */
+.agent-queue {
   scrollbar-width: thin;
   scrollbar-color: #d1d5db transparent;
 }
