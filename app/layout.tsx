@@ -1,10 +1,20 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { ConvexClientProvider } from "./ConvexClientProvider";
 
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
+
 export const metadata: Metadata = {
-  title: "Kuruvi 🐦 - Multi-Agent Task Management",
+  title: "Kuruvi - Task Management",
   description: "AI-powered collaborative task management with specialized agents",
+  icons: {
+    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐦</text></svg>",
+  },
 };
 
 export default function RootLayout({
@@ -13,8 +23,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className="antialiased bg-slate-950 text-slate-50">
+    <html lang="en" className={`dark ${inter.variable}`}>
+      <body className={`${inter.className} antialiased`}>
         <ConvexClientProvider>
           {children}
         </ConvexClientProvider>
