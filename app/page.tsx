@@ -697,6 +697,7 @@ function TaskCard({
 }) {
   const priority = priorityConfig[task.priority as Priority];
   const [showMoveMenu, setShowMoveMenu] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const isCompleted = task.status === "completed";
 
   return (
@@ -741,12 +742,19 @@ function TaskCard({
             status={task.status}
             accentColor={agent.accentColor}
             taskTitle={task.title}
-            onClick={(e: React.MouseEvent) => {
+            isLoading={isUpdating}
+            onClick={async (e: React.MouseEvent) => {
               e.stopPropagation();
-              if (task.status === "completed") {
-                updateStatus({ taskId: task._id, status: "queued", agentName: "user" });
-              } else {
-                updateStatus({ taskId: task._id, status: "completed", agentName: "user" });
+              if (isUpdating) return;
+              setIsUpdating(true);
+              try {
+                if (task.status === "completed") {
+                  await updateStatus({ taskId: task._id, status: "queued", agentName: "user" });
+                } else {
+                  await updateStatus({ taskId: task._id, status: "completed", agentName: "user" });
+                }
+              } finally {
+                setIsUpdating(false);
               }
             }}
           />
@@ -992,7 +1000,11 @@ function MoveMenu({
         .map((a) => (
           <button
             key={a.id}
-            onClick={() => onMove(a.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onMove(a.id);
+              onClose();
+            }}
             className="flex items-center gap-2.5 w-full"
             style={{
               padding: "7px 10px",
@@ -1291,41 +1303,59 @@ function StatusIndicator({
   accentColor,
   taskTitle,
   onClick,
+  isLoading = false,
 }: {
   status: string;
   accentColor: string;
   taskTitle: string;
   onClick: (e: React.MouseEvent) => void;
+  isLoading?: boolean;
 }) {
   if (status === "completed") {
     return (
       <button
         onClick={onClick}
+        disabled={isLoading}
         aria-label={`Mark task "${taskTitle}" as incomplete`}
         className="flex items-center justify-center"
         style={{
           width: "16px",
           height: "16px",
           borderRadius: "50%",
-          background: "#16a34a",
+          background: isLoading ? "#9ca3af" : "#16a34a",
           border: "none",
-          cursor: "pointer",
+          cursor: isLoading ? "wait" : "pointer",
           padding: 0,
           transition: "opacity 0.15s",
+          opacity: isLoading ? 0.6 : 1,
         }}
       >
-        <svg
-          width="8"
-          height="8"
-          viewBox="0 0 12 12"
-          fill="none"
-          stroke="white"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <polyline points="2,6 5,9 10,3" />
-        </svg>
+        {isLoading ? (
+          <div
+            className="spinner"
+            style={{
+              width: "8px",
+              height: "8px",
+              border: "2px solid white",
+              borderTop: "2px solid transparent",
+              borderRadius: "50%",
+              animation: "spin 0.6s linear infinite",
+            }}
+          />
+        ) : (
+          <svg
+            width="8"
+            height="8"
+            viewBox="0 0 12 12"
+            fill="none"
+            stroke="white"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="2,6 5,9 10,3" />
+          </svg>
+        )}
       </button>
     );
   }
@@ -1333,26 +1363,33 @@ function StatusIndicator({
     return (
       <button
         onClick={onClick}
+        disabled={isLoading}
         aria-label={`Mark task "${taskTitle}" as complete`}
         className="flex items-center justify-center"
         style={{
           width: "16px",
           height: "16px",
           borderRadius: "50%",
-          border: `2px solid ${accentColor}`,
+          border: `2px solid ${isLoading ? "#9ca3af" : accentColor}`,
           background: "transparent",
-          cursor: "pointer",
+          cursor: isLoading ? "wait" : "pointer",
           padding: 0,
           transition: "all 0.15s",
+          opacity: isLoading ? 0.6 : 1,
         }}
       >
         <div
-          className="pulse-dot"
+          className={isLoading ? "spinner" : "pulse-dot"}
           style={{
             width: "6px",
             height: "6px",
             borderRadius: "50%",
-            background: accentColor,
+            background: isLoading ? "transparent" : accentColor,
+            ...(isLoading && {
+              border: `2px solid ${accentColor}`,
+              borderTop: "2px solid transparent",
+              animation: "spin 0.6s linear infinite",
+            }),
           }}
         />
       </button>
@@ -1362,26 +1399,42 @@ function StatusIndicator({
     return (
       <button
         onClick={onClick}
+        disabled={isLoading}
         aria-label={`Mark task "${taskTitle}" as complete`}
         className="flex items-center justify-center"
         style={{
           width: "16px",
           height: "16px",
           borderRadius: "50%",
-          border: "2px solid #ef4444",
+          border: `2px solid ${isLoading ? "#9ca3af" : "#ef4444"}`,
           background: "transparent",
-          cursor: "pointer",
+          cursor: isLoading ? "wait" : "pointer",
           padding: 0,
+          opacity: isLoading ? 0.6 : 1,
         }}
       >
-        <div
-          style={{
-            width: "6px",
-            height: "2px",
-            background: "#ef4444",
-            borderRadius: "2px",
-          }}
-        />
+        {isLoading ? (
+          <div
+            className="spinner"
+            style={{
+              width: "6px",
+              height: "6px",
+              border: "2px solid #ef4444",
+              borderTop: "2px solid transparent",
+              borderRadius: "50%",
+              animation: "spin 0.6s linear infinite",
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              width: "6px",
+              height: "2px",
+              background: "#ef4444",
+              borderRadius: "2px",
+            }}
+          />
+        )}
       </button>
     );
   }
@@ -1389,20 +1442,37 @@ function StatusIndicator({
   return (
     <button
       onClick={onClick}
+      disabled={isLoading}
       aria-label={`Mark task "${taskTitle}" as complete`}
+      className="flex items-center justify-center"
       style={{
         width: "16px",
         height: "16px",
         borderRadius: "50%",
-        border: "2px solid #d1d5db",
+        border: `2px solid ${isLoading ? "#9ca3af" : "#d1d5db"}`,
         background: "transparent",
-        cursor: "pointer",
+        cursor: isLoading ? "wait" : "pointer",
         padding: 0,
         transition: "border-color 0.15s",
+        opacity: isLoading ? 0.6 : 1,
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#16a34a")}
-      onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#d1d5db")}
-    />
+      onMouseEnter={(e) => !isLoading && (e.currentTarget.style.borderColor = "#16a34a")}
+      onMouseLeave={(e) => !isLoading && (e.currentTarget.style.borderColor = "#d1d5db")}
+    >
+      {isLoading && (
+        <div
+          className="spinner"
+          style={{
+            width: "6px",
+            height: "6px",
+            border: "2px solid #9ca3af",
+            borderTop: "2px solid transparent",
+            borderRadius: "50%",
+            animation: "spin 0.6s linear infinite",
+          }}
+        />
+      )}
+    </button>
   );
 }
 
