@@ -104,6 +104,7 @@ export default function Home() {
   const updateStatus = useMutation(api.tasks.updateStatus);
   const deleteTask = useMutation(api.tasks.deleteTask);
   const deleteAllByAgent = useMutation(api.tasks.deleteAllByAgent);
+  const deleteAllTasks = useMutation(api.tasks.deleteAllTasks);
 
   const [showNewTask, setShowNewTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -196,27 +197,64 @@ export default function Home() {
             </div>
           </div>
 
-          <button
-            onClick={() => setShowNewTask(true)}
-            className="flex items-center gap-1.5"
-            style={{
-              height: "34px",
-              padding: "0 14px",
-              borderRadius: "8px",
-              fontSize: "13px",
-              fontWeight: 500,
-              background: "#6366f1",
-              color: "#ffffff",
-              border: "none",
-              cursor: "pointer",
-              transition: "background 0.15s",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#4f46e5")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "#6366f1")}
-          >
-            <PlusIcon />
-            <span className="hidden sm:inline">New</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {tasks.length > 0 && (
+              <button
+                onClick={async () => {
+                  if (confirm(`Delete all ${tasks.length} tasks? This cannot be undone.`)) {
+                    await deleteAllTasks();
+                  }
+                }}
+                className="flex items-center gap-1.5"
+                style={{
+                  height: "34px",
+                  padding: "0 14px",
+                  borderRadius: "8px",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  background: "#ffffff",
+                  color: "#9ca3af",
+                  border: "1px solid #e5e7eb",
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#ef4444";
+                  e.currentTarget.style.color = "#ffffff";
+                  e.currentTarget.style.borderColor = "#ef4444";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#ffffff";
+                  e.currentTarget.style.color = "#9ca3af";
+                  e.currentTarget.style.borderColor = "#e5e7eb";
+                }}
+              >
+                <TrashIcon />
+                <span className="hidden sm:inline">Clear All</span>
+              </button>
+            )}
+            <button
+              onClick={() => setShowNewTask(true)}
+              className="flex items-center gap-1.5"
+              style={{
+                height: "34px",
+                padding: "0 14px",
+                borderRadius: "8px",
+                fontSize: "13px",
+                fontWeight: 500,
+                background: "#6366f1",
+                color: "#ffffff",
+                border: "none",
+                cursor: "pointer",
+                transition: "background 0.15s",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "#4f46e5")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "#6366f1")}
+            >
+              <PlusIcon />
+              <span className="hidden sm:inline">New</span>
+            </button>
+          </div>
         </div>
       </header>
 
