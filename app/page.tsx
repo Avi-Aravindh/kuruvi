@@ -3,6 +3,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { useState, useRef, useEffect } from "react";
+import { Id } from "../convex/_generated/dataModel";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 type AgentId = "helix" | "ada" | "turing" | "steve" | "jony" | "nitty" | "wanderer";
@@ -114,6 +115,7 @@ export default function Home() {
   const [expandedTask, setExpandedTask] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState<Record<string, boolean>>({});
   const [isCreating, setIsCreating] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<Id<"tasks"> | null>(null);
 
   const handleCreateTask = async () => {
     if (!newTaskTitle.trim() || isCreating) return;
@@ -514,7 +516,7 @@ export default function Home() {
                           allAgents={agents}
                           moveTask={moveTask}
                           updateStatus={updateStatus}
-                          deleteTask={deleteTask}
+                          onDelete={(taskId) => setTaskToDelete(taskId)}
                           isExpanded={expandedTask === task._id}
                           onToggleExpand={() =>
                             setExpandedTask(expandedTask === task._id ? null : task._id)
@@ -579,7 +581,7 @@ export default function Home() {
                                 allAgents={agents}
                                 moveTask={moveTask}
                                 updateStatus={updateStatus}
-                                deleteTask={deleteTask}
+                                onDelete={(taskId) => setTaskToDelete(taskId)}
                                 isExpanded={expandedTask === task._id}
                                 onToggleExpand={() =>
                                   setExpandedTask(expandedTask === task._id ? null : task._id)
@@ -671,6 +673,20 @@ export default function Home() {
           isCreating={isCreating}
         />
       )}
+
+      {/* ─── Delete Confirmation Modal ───────────────────────────────── */}
+      {taskToDelete && (
+        <ConfirmModal
+          title="Delete this task?"
+          message="This action cannot be undone."
+          confirmLabel="Delete"
+          onConfirm={async () => {
+            await deleteTask({ taskId: taskToDelete });
+            setTaskToDelete(null);
+          }}
+          onCancel={() => setTaskToDelete(null)}
+        />
+      )}
     </div>
   );
 }
@@ -682,7 +698,7 @@ function TaskCard({
   allAgents,
   moveTask,
   updateStatus,
-  deleteTask,
+  onDelete,
   isExpanded,
   onToggleExpand,
 }: {
@@ -691,7 +707,7 @@ function TaskCard({
   allAgents: readonly Agent[];
   moveTask: any;
   updateStatus: any;
-  deleteTask: any;
+  onDelete: (taskId: Id<"tasks">) => void;
   isExpanded: boolean;
   onToggleExpand: () => void;
 }) {
@@ -911,9 +927,9 @@ function TaskCard({
 
             {/* Delete */}
             <button
-              onClick={async (e) => {
+              onClick={(e) => {
                 e.stopPropagation();
-                await deleteTask({ taskId: task._id });
+                onDelete(task._id);
               }}
               aria-label="Delete task"
               className="flex items-center gap-1.5"
@@ -1291,6 +1307,121 @@ function NewTaskModal({
               {isCreating ? "Creating..." : "Create"}
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Confirm Modal ──────────────────────────────────────────────────────────
+function ConfirmModal({
+  title,
+  message,
+  confirmLabel,
+  onConfirm,
+  onCancel,
+}: {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCancel();
+      if (e.key === "Enter") onConfirm();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onConfirm, onCancel]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{
+        backgroundColor: "rgba(0, 0, 0, 0.15)",
+        backdropFilter: "blur(2px)",
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onCancel();
+      }}
+    >
+      <div
+        className="w-full max-w-sm mx-4"
+        style={{
+          borderRadius: "14px",
+          background: "#ffffff",
+          border: "1px solid #e5e7eb",
+          boxShadow:
+            "0 20px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.04)",
+          padding: "20px",
+        }}
+      >
+        <h3
+          style={{
+            fontSize: "16px",
+            fontWeight: 600,
+            color: "#111827",
+            margin: "0 0 8px 0",
+          }}
+        >
+          {title}
+        </h3>
+        <p
+          style={{
+            fontSize: "14px",
+            color: "#6b7280",
+            margin: "0 0 20px 0",
+          }}
+        >
+          {message}
+        </p>
+        <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={onCancel}
+            style={{
+              height: "34px",
+              padding: "0 12px",
+              borderRadius: "8px",
+              fontSize: "13px",
+              fontWeight: 500,
+              color: "#6b7280",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              transition: "all 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#f3f4f6";
+              e.currentTarget.style.color = "#374151";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "#6b7280";
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            style={{
+              height: "34px",
+              padding: "0 16px",
+              borderRadius: "8px",
+              fontSize: "13px",
+              fontWeight: 500,
+              background: "#ef4444",
+              color: "#ffffff",
+              border: "none",
+              cursor: "pointer",
+              transition: "background 0.15s",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#dc2626")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "#ef4444")}
+          >
+            {confirmLabel}
+          </button>
         </div>
       </div>
     </div>

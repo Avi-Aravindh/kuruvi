@@ -479,3 +479,217 @@ describe("NewTaskModal - Validation Feedback", () => {
     expect(createButton).not.toBeDisabled();
   });
 });
+
+describe("ConfirmModal - Delete Confirmation", () => {
+  const mockTasks = [
+    {
+      _id: "task-1",
+      title: "Test Task",
+      description: "Test description",
+      agent: "ada",
+      priority: "medium",
+      status: "queued",
+      createdBy: "user",
+      _creationTime: Date.now(),
+    },
+  ];
+
+  const mockDeleteTask = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (useQuery as ReturnType<typeof vi.fn>).mockReturnValue(mockTasks);
+    (useMutation as ReturnType<typeof vi.fn>).mockImplementation((api) => {
+      if (api === "tasks:deleteTask") return mockDeleteTask;
+      return vi.fn();
+    });
+    mockDeleteTask.mockResolvedValue(undefined);
+  });
+
+  it("should show confirmation modal when delete button is clicked", async () => {
+    render(<Home />);
+
+    // Expand task to show delete button
+    const taskCard = screen.getByText("Test Task").closest("div");
+    fireEvent.click(taskCard!);
+
+    await waitFor(() => {
+      expect(screen.getByText("Test description")).toBeTruthy();
+    });
+
+    // Click delete button
+    const deleteButton = screen.getByLabelText("Delete task");
+    fireEvent.click(deleteButton);
+
+    // Confirmation modal should appear
+    await waitFor(() => {
+      expect(screen.getByText("Delete this task?")).toBeTruthy();
+      expect(screen.getByText("This action cannot be undone.")).toBeTruthy();
+    });
+  });
+
+  it("should delete task when confirm is clicked", async () => {
+    render(<Home />);
+
+    // Expand task and click delete
+    const taskCard = screen.getByText("Test Task").closest("div");
+    fireEvent.click(taskCard!);
+    await waitFor(() => {
+      expect(screen.getByText("Test description")).toBeTruthy();
+    });
+
+    const deleteButton = screen.getByLabelText("Delete task");
+    fireEvent.click(deleteButton);
+
+    // Click confirm in modal
+    await waitFor(() => {
+      expect(screen.getByText("Delete this task?")).toBeTruthy();
+    });
+
+    // Get all delete buttons and select the one in the modal (second one)
+    const confirmButton = screen.getAllByText("Delete")[1];
+    fireEvent.click(confirmButton);
+
+    // Delete mutation should be called
+    await waitFor(() => {
+      expect(mockDeleteTask).toHaveBeenCalledWith({ taskId: "task-1" });
+    });
+  });
+
+  it("should not delete task when cancel is clicked", async () => {
+    render(<Home />);
+
+    // Expand task and click delete
+    const taskCard = screen.getByText("Test Task").closest("div");
+    fireEvent.click(taskCard!);
+    await waitFor(() => {
+      expect(screen.getByText("Test description")).toBeTruthy();
+    });
+
+    const deleteButton = screen.getByLabelText("Delete task");
+    fireEvent.click(deleteButton);
+
+    // Click cancel in modal
+    await waitFor(() => {
+      expect(screen.getByText("Delete this task?")).toBeTruthy();
+    });
+
+    const cancelButton = screen.getByText("Cancel");
+    fireEvent.click(cancelButton);
+
+    // Delete mutation should NOT be called
+    expect(mockDeleteTask).not.toHaveBeenCalled();
+
+    // Modal should close
+    await waitFor(() => {
+      expect(screen.queryByText("Delete this task?")).toBeNull();
+    });
+  });
+
+  it("should close modal on Escape key", async () => {
+    render(<Home />);
+
+    // Expand task and click delete
+    const taskCard = screen.getByText("Test Task").closest("div");
+    fireEvent.click(taskCard!);
+    await waitFor(() => {
+      expect(screen.getByText("Test description")).toBeTruthy();
+    });
+
+    const deleteButton = screen.getByLabelText("Delete task");
+    fireEvent.click(deleteButton);
+
+    // Modal should appear
+    await waitFor(() => {
+      expect(screen.getByText("Delete this task?")).toBeTruthy();
+    });
+
+    // Press Escape
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    // Modal should close and delete should not be called
+    await waitFor(() => {
+      expect(screen.queryByText("Delete this task?")).toBeNull();
+    });
+    expect(mockDeleteTask).not.toHaveBeenCalled();
+  });
+
+  it("should confirm deletion on Enter key", async () => {
+    render(<Home />);
+
+    // Expand task and click delete
+    const taskCard = screen.getByText("Test Task").closest("div");
+    fireEvent.click(taskCard!);
+    await waitFor(() => {
+      expect(screen.getByText("Test description")).toBeTruthy();
+    });
+
+    const deleteButton = screen.getByLabelText("Delete task");
+    fireEvent.click(deleteButton);
+
+    // Modal should appear
+    await waitFor(() => {
+      expect(screen.getByText("Delete this task?")).toBeTruthy();
+    });
+
+    // Press Enter
+    fireEvent.keyDown(window, { key: "Enter" });
+
+    // Delete should be called
+    await waitFor(() => {
+      expect(mockDeleteTask).toHaveBeenCalledWith({ taskId: "task-1" });
+    });
+  });
+
+  it("should close modal when clicking backdrop", async () => {
+    render(<Home />);
+
+    // Expand task and click delete
+    const taskCard = screen.getByText("Test Task").closest("div");
+    fireEvent.click(taskCard!);
+    await waitFor(() => {
+      expect(screen.getByText("Test description")).toBeTruthy();
+    });
+
+    const deleteButton = screen.getByLabelText("Delete task");
+    fireEvent.click(deleteButton);
+
+    // Modal should appear
+    await waitFor(() => {
+      expect(screen.getByText("Delete this task?")).toBeTruthy();
+    });
+
+    // Find and click the backdrop (the overlay div)
+    const backdrop = screen.getByText("Delete this task?").closest(".fixed");
+    fireEvent.click(backdrop!);
+
+    // Modal should close and delete should not be called
+    await waitFor(() => {
+      expect(screen.queryByText("Delete this task?")).toBeNull();
+    });
+    expect(mockDeleteTask).not.toHaveBeenCalled();
+  });
+
+  it("should not propagate click event from delete button to task card", async () => {
+    render(<Home />);
+
+    // Expand task first
+    const taskCard = screen.getByText("Test Task").closest("div");
+    fireEvent.click(taskCard!);
+    await waitFor(() => {
+      expect(screen.getByText("Test description")).toBeTruthy();
+    });
+
+    // Click delete button
+    const deleteButton = screen.getByLabelText("Delete task");
+    fireEvent.click(deleteButton);
+
+    // Modal should appear (not task card collapsing)
+    await waitFor(() => {
+      expect(screen.getByText("Delete this task?")).toBeTruthy();
+    });
+
+    // Task should still be expanded
+    expect(screen.getByText("Test description")).toBeTruthy();
+  });
+});
