@@ -27,7 +27,7 @@ const agents: readonly Agent[] = [
     name: "Helix",
     trait: "Squad Lead",
     avatar: "Η",
-    accentColor: "#8b5cf6",
+    accentColor: "#6366f1",
     accentBg: "#faf5ff",
     accentBorder: "#e9d5ff",
   },
@@ -63,7 +63,7 @@ const agents: readonly Agent[] = [
     name: "Jony",
     trait: "The Designer",
     avatar: "Ι",
-    accentColor: "#9333ea",
+    accentColor: "#4f46e5",
     accentBg: "#faf5ff",
     accentBorder: "#e9d5ff",
   },
@@ -168,7 +168,7 @@ export default function Home() {
               <div className="flex items-center gap-2.5">
                 <div
                   className="w-8 h-8 rounded-lg flex items-center justify-center"
-                  style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
+                  style={{ background: "linear-gradient(135deg, #6366f1, #4f46e5)" }}
                 >
                   <svg
                     width="16"
@@ -228,7 +228,7 @@ export default function Home() {
             <div className="flex items-center gap-2.5">
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
+                style={{ background: "linear-gradient(135deg, #6366f1, #4f46e5)" }}
               >
                 <svg
                   width="16"
@@ -581,7 +581,7 @@ export default function Home() {
                   width: "64px",
                   height: "64px",
                   borderRadius: "16px",
-                  background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                  background: "linear-gradient(135deg, #6366f1, #4f46e5)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
