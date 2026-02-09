@@ -267,6 +267,29 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={async () => {
+                await fetch("/api/auth/logout", { method: "POST" });
+                window.location.href = "/login";
+              }}
+              aria-label="Sign out"
+              className="btn-logout flex items-center gap-1.5"
+              style={{
+                height: "34px",
+                padding: "0 14px",
+                borderRadius: "8px",
+                fontSize: "13px",
+                fontWeight: 500,
+                background: "#ffffff",
+                color: "#9ca3af",
+                border: "1px solid #e5e7eb",
+                cursor: "pointer",
+                transition: "all 0.15s",
+              }}
+            >
+              <LogoutIcon />
+              <span className="hidden sm:inline">Sign out</span>
+            </button>
             {tasks && tasks.length > 0 && (
               <button
                 onClick={async () => {
@@ -1660,6 +1683,25 @@ function ChevronDownIcon({ className = "" }: { className?: string }) {
         fillRule="evenodd"
         d="M4.22 6.22a.75.75 0 011.06 0L8 8.94l2.72-2.72a.75.75 0 111.06 1.06l-3.25 3.25a.75.75 0 01-1.06 0L4.22 7.28a.75.75 0 010-1.06z"
       />
+    </svg>
+  );
+}
+
+function LogoutIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3" />
+      <path d="M11 11l3-3-3-3" />
+      <path d="M14 8H6" />
     </svg>
   );
 }
