@@ -77,46 +77,39 @@ export class AgentScheduler {
       console.log(`✅ Helix is now ALWAYS ON - listening for DMs in real-time`);
     }
 
-    // Schedule specialists (not Helix) to rotate - only ONE active at a time
-    // Rotation schedule: each specialist gets a 2-hour window every 12 hours
+    // Schedule specialists (not Helix) to run in cycles - only ONE active at a time
+    // Cycle: Ada → Turing → Steve → Jony → Nitty → Wanderer → repeat
+    // Each agent runs once every (15min × number of specialists)
     const specialists = this.agents.filter(a => a.config.id !== 'helix');
 
     if (specialists.length > 0) {
-      const hoursPerAgent = 12 / specialists.length; // Distribute 12 hours among specialists
+      let currentAgentIndex = 0;
 
-      specialists.forEach((agent, index) => {
-        // Each agent runs for their designated time window
-        // Agent 0: 00:00-02:00, 12:00-14:00
-        // Agent 1: 02:00-04:00, 14:00-16:00
-        // Agent 2: 04:00-06:00, 16:00-18:00
-        // etc.
+      // Create a single job that rotates through all specialists
+      const rotationJob = new CronJob('*/15 * * * *', async () => {
+        const currentAgent = specialists[currentAgentIndex];
 
-        const startHour1 = Math.floor(index * hoursPerAgent);
-        const endHour1 = Math.floor((index + 1) * hoursPerAgent);
-        const startHour2 = startHour1 + 12;
-        const endHour2 = endHour1 + 12;
+        try {
+          console.log(`\n🔄 Cycle ${Math.floor(currentAgentIndex / specialists.length) + 1}: Running ${currentAgent.config.name}...`);
+          await currentAgent.run();
+        } catch (error) {
+          console.error(`Error running ${currentAgent.config.name}:`, error);
+        }
 
-        // Run every 15 minutes during agent's window
-        // Format: */15 start-end,start2-end2 * * *
-        const cronPattern = `*/15 ${startHour1}-${endHour1 - 1},${startHour2}-${endHour2 - 1} * * *`;
-
-        const job = new CronJob(cronPattern, async () => {
-          try {
-            await agent.run();
-          } catch (error) {
-            console.error(`Error running agent:`, error);
-          }
-        });
-
-        job.start();
-        this.jobs.push(job);
-
-        console.log(
-          `Scheduled ${agent.config.name} to run every 15min during: ` +
-          `${String(startHour1).padStart(2, '0')}:00-${String(endHour1).padStart(2, '0')}:00 and ` +
-          `${String(startHour2).padStart(2, '0')}:00-${String(endHour2).padStart(2, '0')}:00`
-        );
+        // Move to next agent in rotation
+        currentAgentIndex = (currentAgentIndex + 1) % specialists.length;
       });
+
+      rotationJob.start();
+      this.jobs.push(rotationJob);
+
+      const cycleTime = specialists.length * 15; // Total minutes for one full cycle
+      console.log(
+        `✅ Scheduled ${specialists.length} specialists in rotation:\n` +
+        `   ${specialists.map(a => a.config.name).join(' → ')}\n` +
+        `   Each runs every ${cycleTime} minutes (one full cycle)\n` +
+        `   Current order: Every 15min, next agent activates`
+      );
     }
 
     console.log('Agent scheduler running');
@@ -134,8 +127,9 @@ export class AgentScheduler {
           `🐦 **Kuruvi Agent System Started**\n\n` +
           `${this.agents.length} agents configured!\n\n` +
           `${helixStatus}\n\n` +
-          `**Specialists rotate - only ONE active at a time:**\n` +
-          `${specialists.map(a => `${a.config.emoji} ${a.config.name}`).join(', ')}\n\n` +
+          `**Specialists run in cycles (one at a time, every 15min):**\n` +
+          `${specialists.map(a => `${a.config.emoji} ${a.config.name}`).join(' → ')}\n\n` +
+          `Full cycle: ${specialists.length * 15} minutes\n\n` +
           `You can DM any agent directly to create tasks!`,
       }),
     });
