@@ -22,6 +22,7 @@ function validateEnv() {
 
   // Check for at least one agent bot token
   const agentTokens = [
+    'DISCORD_BOT_TOKEN_HELIX',
     'DISCORD_BOT_TOKEN_ADA',
     'DISCORD_BOT_TOKEN_FLASH',
     'DISCORD_BOT_TOKEN_ORACLE',
@@ -51,6 +52,7 @@ async function main() {
 
   // Build agent bot configuration from environment
   const agentBots = [
+    { name: 'Helix', token: process.env.DISCORD_BOT_TOKEN_HELIX },
     { name: 'Ada', token: process.env.DISCORD_BOT_TOKEN_ADA },
     { name: 'Flash', token: process.env.DISCORD_BOT_TOKEN_FLASH },
     { name: 'Oracle', token: process.env.DISCORD_BOT_TOKEN_ORACLE },
