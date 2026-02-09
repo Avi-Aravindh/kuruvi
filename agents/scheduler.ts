@@ -79,14 +79,14 @@ export class AgentScheduler {
 
     // Schedule specialists (not Helix) to run in cycles - only ONE active at a time
     // Cycle: Ada → Turing → Steve → Jony → Nitty → Wanderer → repeat
-    // Each agent runs once every (15min × number of specialists)
+    // Each agent runs once every (10min × number of specialists)
     const specialists = this.agents.filter(a => a.config.id !== 'helix');
 
     if (specialists.length > 0) {
       let currentAgentIndex = 0;
 
       // Create a single job that rotates through all specialists
-      const rotationJob = new CronJob('*/15 * * * *', async () => {
+      const rotationJob = new CronJob('*/10 * * * *', async () => {
         const currentAgent = specialists[currentAgentIndex];
 
         try {
@@ -103,12 +103,12 @@ export class AgentScheduler {
       rotationJob.start();
       this.jobs.push(rotationJob);
 
-      const cycleTime = specialists.length * 15; // Total minutes for one full cycle
+      const cycleTime = specialists.length * 10; // Total minutes for one full cycle
       console.log(
         `✅ Scheduled ${specialists.length} specialists in rotation:\n` +
         `   ${specialists.map(a => a.config.name).join(' → ')}\n` +
         `   Each runs every ${cycleTime} minutes (one full cycle)\n` +
-        `   Current order: Every 15min, next agent activates`
+        `   Current order: Every 10min, next agent activates`
       );
     }
 
@@ -127,9 +127,9 @@ export class AgentScheduler {
           `🐦 **Kuruvi Agent System Started**\n\n` +
           `${this.agents.length} agents configured!\n\n` +
           `${helixStatus}\n\n` +
-          `**Specialists run in cycles (one at a time, every 15min):**\n` +
+          `**Specialists run in cycles (one at a time, every 10min):**\n` +
           `${specialists.map(a => `${a.config.emoji} ${a.config.name}`).join(' → ')}\n\n` +
-          `Full cycle: ${specialists.length * 15} minutes\n\n` +
+          `Full cycle: ${specialists.length * 10} minutes\n\n` +
           `You can DM any agent directly to create tasks!`,
       }),
     });
