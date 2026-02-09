@@ -701,6 +701,7 @@ function TaskCard({
         background: isCompleted ? "#fafbfc" : "#ffffff",
         border: "1px solid transparent",
         opacity: isCompleted ? 0.65 : 1,
+        boxShadow: isCompleted ? "none" : "0 1px 2px rgba(0,0,0,0.03)",
         transition: "all 0.15s ease",
       }}
       onClick={onToggleExpand}
