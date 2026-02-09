@@ -1237,8 +1237,8 @@ function NewTaskModal({
             borderTop: "1px solid #f3f4f6",
           }}
         >
-          <span style={{ fontSize: "12px", color: "#9ca3af" }}>
-            Press Enter to create
+          <span style={{ fontSize: "12px", color: !title.trim() ? "#ef4444" : "#9ca3af" }}>
+            {!title.trim() ? "Title is required" : "Press Enter to create"}
           </span>
           <div className="flex items-center gap-2">
             <button

@@ -250,3 +250,232 @@ describe("TaskCard - Keyboard Navigation", () => {
     });
   });
 });
+
+describe("StatusIndicator - Loading Feedback", () => {
+  const mockTasks = [
+    {
+      _id: "task-1",
+      title: "Test Task",
+      description: "Test description",
+      agent: "ada",
+      priority: "medium",
+      status: "queued",
+      createdBy: "user",
+      _creationTime: Date.now(),
+    },
+  ];
+
+  const mockUpdateStatus = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (useQuery as ReturnType<typeof vi.fn>).mockReturnValue(mockTasks);
+    (useMutation as ReturnType<typeof vi.fn>).mockImplementation((api) => {
+      if (api === "tasks:updateStatus") return mockUpdateStatus;
+      return vi.fn();
+    });
+    mockUpdateStatus.mockResolvedValue(undefined);
+  });
+
+  it("should prevent multiple status updates on rapid clicks", async () => {
+    // Simulate slow network
+    mockUpdateStatus.mockImplementation(
+      () => new Promise((resolve) => setTimeout(resolve, 100))
+    );
+
+    render(<Home />);
+
+    const statusButton = screen.getByLabelText('Mark task "Test Task" as complete');
+
+    // Rapid clicks (5 times)
+    fireEvent.click(statusButton);
+    fireEvent.click(statusButton);
+    fireEvent.click(statusButton);
+    fireEvent.click(statusButton);
+    fireEvent.click(statusButton);
+
+    // Wait for mutation to complete
+    await waitFor(() => expect(mockUpdateStatus).toHaveBeenCalled(), {
+      timeout: 200,
+    });
+
+    // Should only be called once
+    expect(mockUpdateStatus).toHaveBeenCalledTimes(1);
+    expect(mockUpdateStatus).toHaveBeenCalledWith({
+      taskId: "task-1",
+      status: "completed",
+      agentName: "user",
+    });
+  });
+
+  it("should show loading state during status update", async () => {
+    mockUpdateStatus.mockImplementation(
+      () => new Promise((resolve) => setTimeout(resolve, 100))
+    );
+
+    render(<Home />);
+
+    const statusButton = screen.getByLabelText('Mark task "Test Task" as complete');
+
+    // Click to toggle status
+    fireEvent.click(statusButton);
+
+    // Button should be disabled during update
+    await waitFor(() => {
+      expect(statusButton).toBeDisabled();
+    });
+
+    // Wait for completion
+    await waitFor(() => expect(mockUpdateStatus).toHaveBeenCalledTimes(1), {
+      timeout: 200,
+    });
+  });
+
+  it("should toggle status from queued to completed", async () => {
+    render(<Home />);
+
+    const statusButton = screen.getByLabelText('Mark task "Test Task" as complete');
+    fireEvent.click(statusButton);
+
+    await waitFor(() => {
+      expect(mockUpdateStatus).toHaveBeenCalledWith({
+        taskId: "task-1",
+        status: "completed",
+        agentName: "user",
+      });
+    });
+  });
+
+  it("should call updateStatus with correct parameters when completing a task", async () => {
+    render(<Home />);
+
+    const statusButton = screen.getByLabelText('Mark task "Test Task" as complete');
+    fireEvent.click(statusButton);
+
+    await waitFor(() => {
+      expect(mockUpdateStatus).toHaveBeenCalledWith({
+        taskId: "task-1",
+        status: "completed",
+        agentName: "user",
+      });
+    });
+  });
+
+  it("should stop event propagation to prevent card expansion", async () => {
+    render(<Home />);
+
+    const statusButton = screen.getByLabelText('Mark task "Test Task" as complete');
+
+    // Task should not be expanded initially
+    expect(screen.queryByText("Test description")).toBeNull();
+
+    // Click status button
+    fireEvent.click(statusButton);
+
+    // Wait a bit
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    // Task should still be collapsed (event propagation was stopped)
+    expect(screen.queryByText("Test description")).toBeNull();
+  });
+
+  it("should re-enable button after status update completes", async () => {
+    mockUpdateStatus.mockResolvedValue(undefined);
+
+    render(<Home />);
+
+    const statusButton = screen.getByLabelText('Mark task "Test Task" as complete');
+
+    // Click to toggle status
+    fireEvent.click(statusButton);
+
+    // Wait for mutation to complete
+    await waitFor(() => expect(mockUpdateStatus).toHaveBeenCalledTimes(1));
+
+    // Button should be enabled again (not disabled)
+    expect(statusButton).not.toBeDisabled();
+  });
+
+  it("should have cursor:wait style when loading", async () => {
+    mockUpdateStatus.mockImplementation(
+      () => new Promise((resolve) => setTimeout(resolve, 100))
+    );
+
+    render(<Home />);
+
+    const statusButton = screen.getByLabelText('Mark task "Test Task" as complete');
+
+    // Click to toggle status
+    fireEvent.click(statusButton);
+
+    // Button should have wait cursor during update
+    await waitFor(() => {
+      expect(statusButton).toHaveStyle({ cursor: "wait" });
+    });
+
+    // Wait for completion
+    await waitFor(() => expect(mockUpdateStatus).toHaveBeenCalledTimes(1), {
+      timeout: 200,
+    });
+  });
+});
+
+describe("NewTaskModal - Validation Feedback", () => {
+  const mockCreateTask = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (useQuery as ReturnType<typeof vi.fn>).mockReturnValue([]);
+    (useMutation as ReturnType<typeof vi.fn>).mockReturnValue(mockCreateTask);
+    mockCreateTask.mockResolvedValue(undefined);
+  });
+
+  it("should show validation message when title is empty", async () => {
+    render(<Home />);
+
+    const newButton = screen.getByText("New");
+    fireEvent.click(newButton);
+
+    await waitFor(() => {
+      expect(screen.getByText("Title is required")).toBeInTheDocument();
+    });
+  });
+
+  it("should show normal hint when title is provided", async () => {
+    render(<Home />);
+
+    const newButton = screen.getByText("New");
+    fireEvent.click(newButton);
+
+    const titleInput = screen.getByPlaceholderText("What needs to be done?");
+    fireEvent.change(titleInput, { target: { value: "Test Task" } });
+
+    await waitFor(() => {
+      expect(screen.getByText("Press Enter to create")).toBeInTheDocument();
+      expect(screen.queryByText("Title is required")).not.toBeInTheDocument();
+    });
+  });
+
+  it("should disable create button when title is empty", async () => {
+    render(<Home />);
+
+    const newButton = screen.getByText("New");
+    fireEvent.click(newButton);
+
+    const createButton = screen.getByText("Create");
+    expect(createButton).toBeDisabled();
+  });
+
+  it("should enable create button when title is provided", async () => {
+    render(<Home />);
+
+    const newButton = screen.getByText("New");
+    fireEvent.click(newButton);
+
+    const titleInput = screen.getByPlaceholderText("What needs to be done?");
+    fireEvent.change(titleInput, { target: { value: "Test Task" } });
+
+    const createButton = screen.getByText("Create");
+    expect(createButton).not.toBeDisabled();
+  });
+});
