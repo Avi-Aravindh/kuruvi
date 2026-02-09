@@ -98,7 +98,7 @@ type Priority = keyof typeof priorityConfig;
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 export default function Home() {
-  const tasks = useQuery(api.tasks.list) || [];
+  const tasks = useQuery(api.tasks.list);
   const createTask = useMutation(api.tasks.create);
   const moveTask = useMutation(api.tasks.moveToAgent);
   const updateStatus = useMutation(api.tasks.updateStatus);
@@ -113,36 +113,103 @@ export default function Home() {
   const [newTaskPriority, setNewTaskPriority] = useState<Priority>("medium");
   const [expandedTask, setExpandedTask] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState<Record<string, boolean>>({});
+  const [isCreating, setIsCreating] = useState(false);
 
   const handleCreateTask = async () => {
-    if (!newTaskTitle.trim()) return;
-    await createTask({
-      title: newTaskTitle,
-      description: newTaskDescription || undefined,
-      agent: newTaskAgent,
-      priority: newTaskPriority,
-      createdBy: "user",
-    });
-    setNewTaskTitle("");
-    setNewTaskDescription("");
-    setNewTaskPriority("medium");
-    setNewTaskAgent("ada");
-    setShowNewTask(false);
+    if (!newTaskTitle.trim() || isCreating) return;
+    setIsCreating(true);
+    try {
+      await createTask({
+        title: newTaskTitle,
+        description: newTaskDescription || undefined,
+        agent: newTaskAgent,
+        priority: newTaskPriority,
+        createdBy: "user",
+      });
+      setNewTaskTitle("");
+      setNewTaskDescription("");
+      setNewTaskPriority("medium");
+      setNewTaskAgent("ada");
+      setShowNewTask(false);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   // Group tasks by agent
   const tasksByAgent = agents.reduce(
     (acc, agent) => {
-      acc[agent.id] = tasks.filter((t: any) => t.agent === agent.id);
+      acc[agent.id] = tasks?.filter((t: any) => t.agent === agent.id) || [];
       return acc;
     },
-    {} as Record<AgentId, typeof tasks>
+    {} as Record<AgentId, any[]>
   );
 
-  const totalActive = tasks.filter((t: any) => t.status !== "completed").length;
-  const totalCompleted = tasks.filter((t: any) => t.status === "completed").length;
+  const totalActive = tasks?.filter((t: any) => t.status !== "completed").length || 0;
+  const totalCompleted = tasks?.filter((t: any) => t.status === "completed").length || 0;
 
   const [collapsedAgents, setCollapsedAgents] = useState<Record<string, boolean>>({});
+
+  // Loading state
+  if (tasks === undefined) {
+    return (
+      <div className="h-screen flex flex-col" style={{ background: "#ffffff" }}>
+        <header
+          className="flex-shrink-0 sticky top-0 z-10"
+          style={{
+            background: "#ffffff",
+            borderBottom: "1px solid #e5e7eb",
+          }}
+        >
+          <div className="flex items-center justify-between px-4 sm:px-6 h-14">
+            <div className="flex items-center gap-3 sm:gap-5">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M16 7h.01M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20l.03-.02A4.4 4.4 0 0 0 5 21a4 4 0 0 0 4-4v-3" />
+                    <circle cx="18" cy="6" r="1" fill="white" />
+                  </svg>
+                </div>
+                <span
+                  style={{
+                    fontSize: "16px",
+                    fontWeight: 600,
+                    color: "#111827",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  Kuruvi
+                </span>
+              </div>
+            </div>
+          </div>
+        </header>
+        <div className="flex-1 overflow-y-auto flex items-center justify-center" style={{ background: "#fafbfc" }}>
+          <div className="flex flex-col items-center gap-3">
+            <div
+              className="w-8 h-8 rounded-full border-2 border-gray-200 border-t-indigo-500 animate-spin"
+              style={{ borderTopColor: "#6366f1" }}
+            />
+            <span style={{ fontSize: "13px", color: "#9ca3af", fontWeight: 500 }}>
+              Loading tasks...
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col" style={{ background: "#ffffff" }}>
@@ -198,7 +265,7 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-2">
-            {tasks.length > 0 && (
+            {tasks && tasks.length > 0 && (
               <button
                 onClick={async () => {
                   if (confirm(`Delete all ${tasks.length} tasks? This cannot be undone.`)) {
@@ -526,7 +593,7 @@ export default function Home() {
           })}
 
           {/* Empty state when no tasks at all */}
-          {tasks.length === 0 && (
+          {tasks && tasks.length === 0 && (
             <div
               className="flex flex-col items-center justify-center"
               style={{
@@ -597,6 +664,7 @@ export default function Home() {
             setNewTaskTitle("");
             setNewTaskDescription("");
           }}
+          isCreating={isCreating}
         />
       )}
     </div>
@@ -965,6 +1033,7 @@ function NewTaskModal({
   setPriority,
   onSubmit,
   onClose,
+  isCreating,
 }: {
   title: string;
   setTitle: (v: string) => void;
@@ -976,6 +1045,7 @@ function NewTaskModal({
   setPriority: (v: Priority) => void;
   onSubmit: () => void;
   onClose: () => void;
+  isCreating: boolean;
 }) {
   const titleRef = useRef<HTMLInputElement>(null);
 
@@ -1171,27 +1241,27 @@ function NewTaskModal({
             </button>
             <button
               onClick={onSubmit}
-              disabled={!title.trim()}
+              disabled={!title.trim() || isCreating}
               style={{
                 height: "34px",
                 padding: "0 16px",
                 borderRadius: "8px",
                 fontSize: "13px",
                 fontWeight: 500,
-                background: title.trim() ? "#6366f1" : "#e5e7eb",
-                color: title.trim() ? "#ffffff" : "#9ca3af",
+                background: title.trim() && !isCreating ? "#6366f1" : "#e5e7eb",
+                color: title.trim() && !isCreating ? "#ffffff" : "#9ca3af",
                 border: "none",
-                cursor: title.trim() ? "pointer" : "not-allowed",
+                cursor: title.trim() && !isCreating ? "pointer" : "not-allowed",
                 transition: "background 0.15s",
               }}
               onMouseEnter={(e) => {
-                if (title.trim()) e.currentTarget.style.background = "#4f46e5";
+                if (title.trim() && !isCreating) e.currentTarget.style.background = "#4f46e5";
               }}
               onMouseLeave={(e) => {
-                if (title.trim()) e.currentTarget.style.background = "#6366f1";
+                if (title.trim() && !isCreating) e.currentTarget.style.background = "#6366f1";
               }}
             >
-              Create
+              {isCreating ? "Creating..." : "Create"}
             </button>
           </div>
         </div>
