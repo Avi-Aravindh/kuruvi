@@ -2,6 +2,7 @@ import { Client, GatewayIntentBits, Message, TextChannel } from 'discord.js';
 
 export interface DiscordConfig {
   botToken: string;
+  botUsername: string;
   webhookUrl: string;
   agentWorkspaceChannelId?: string;
 }

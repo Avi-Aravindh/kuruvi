@@ -30,15 +30,36 @@ export abstract class BaseAgent {
   protected config: AgentConfig;
   protected convex: ConvexHttpClient;
   protected discord: DiscordClient;
+  protected sharedWebhookUrl: string;
 
   constructor(
     config: AgentConfig,
     convexUrl: string,
-    discord: DiscordClient
+    botToken: string,
+    sharedWebhookUrl: string,
+    channelId?: string
   ) {
     this.config = config;
     this.convex = new ConvexHttpClient(convexUrl);
-    this.discord = discord;
+    this.sharedWebhookUrl = sharedWebhookUrl;
+
+    // Each agent gets their own Discord client instance
+    this.discord = new DiscordClient({
+      botToken: botToken,
+      botUsername: config.name,
+      webhookUrl: sharedWebhookUrl,
+      agentWorkspaceChannelId: channelId,
+    });
+  }
+
+  async initialize(): Promise<void> {
+    await this.discord.connect();
+    console.log(`[${this.config.name}] Discord bot connected`);
+  }
+
+  async shutdown(): Promise<void> {
+    await this.discord.disconnect();
+    console.log(`[${this.config.name}] Discord bot disconnected`);
   }
 
   /**

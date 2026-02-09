@@ -5,7 +5,12 @@ import { BaseAgent, AgentConfig, Task } from './base-agent';
  * Specializes in system design, architecture planning, and technical strategy
  */
 export class AdaAgent extends BaseAgent {
-  constructor(convexUrl: string, discord: any) {
+  constructor(
+    convexUrl: string,
+    botToken: string,
+    webhookUrl: string,
+    channelId?: string
+  ) {
     const config: AgentConfig = {
       id: 'ada',
       name: 'Ada',
@@ -36,7 +41,7 @@ When given a task, analyze it from an architectural perspective and provide:
 5. Recommendations for implementation`,
     };
 
-    super(config, convexUrl, discord);
+    super(config, convexUrl, botToken, webhookUrl, channelId);
   }
 
   protected async executeTask(task: Task): Promise<{

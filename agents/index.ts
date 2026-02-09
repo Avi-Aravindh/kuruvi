@@ -8,7 +8,6 @@ dotenv.config({ path: '.env.local' });
 
 const REQUIRED_ENV_VARS = [
   'NEXT_PUBLIC_CONVEX_URL',
-  'DISCORD_BOT_TOKEN',
   'DISCORD_WEBHOOK_URL',
 ];
 
@@ -20,6 +19,28 @@ function validateEnv() {
     missing.forEach((key) => console.error(`  - ${key}`));
     process.exit(1);
   }
+
+  // Check for at least one agent bot token
+  const agentTokens = [
+    'DISCORD_BOT_TOKEN_ADA',
+    'DISCORD_BOT_TOKEN_FLASH',
+    'DISCORD_BOT_TOKEN_ORACLE',
+    'DISCORD_BOT_TOKEN_MUSE',
+    'DISCORD_BOT_TOKEN_COMPASS',
+    'DISCORD_BOT_TOKEN_SLEUTH',
+    'DISCORD_BOT_TOKEN_WANDERER',
+  ];
+
+  const configuredAgents = agentTokens.filter((key) => process.env[key]);
+
+  if (configuredAgents.length === 0) {
+    console.error('No agent bot tokens configured!');
+    console.error('Please set at least one of:');
+    agentTokens.forEach((key) => console.error(`  - ${key}`));
+    process.exit(1);
+  }
+
+  console.log(`Found ${configuredAgents.length} configured agent bot(s)`);
 }
 
 async function main() {
@@ -28,9 +49,20 @@ async function main() {
 
   validateEnv();
 
+  // Build agent bot configuration from environment
+  const agentBots = [
+    { name: 'Ada', token: process.env.DISCORD_BOT_TOKEN_ADA },
+    { name: 'Flash', token: process.env.DISCORD_BOT_TOKEN_FLASH },
+    { name: 'Oracle', token: process.env.DISCORD_BOT_TOKEN_ORACLE },
+    { name: 'Muse', token: process.env.DISCORD_BOT_TOKEN_MUSE },
+    { name: 'Compass', token: process.env.DISCORD_BOT_TOKEN_COMPASS },
+    { name: 'Sleuth', token: process.env.DISCORD_BOT_TOKEN_SLEUTH },
+    { name: 'Wanderer', token: process.env.DISCORD_BOT_TOKEN_WANDERER },
+  ].filter((bot) => bot.token) as { name: string; token: string }[];
+
   const scheduler = new AgentScheduler({
     convexUrl: process.env.NEXT_PUBLIC_CONVEX_URL!,
-    discordBotToken: process.env.DISCORD_BOT_TOKEN!,
+    agentBots,
     discordWebhookUrl: process.env.DISCORD_WEBHOOK_URL!,
     discordChannelId: process.env.DISCORD_CHANNEL_ID,
   });

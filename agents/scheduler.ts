@@ -1,45 +1,59 @@
 import { CronJob } from 'cron';
-import { DiscordClient } from './discord-client';
 import { AdaAgent } from './ada';
 // Import other agents as we create them
 
+export interface AgentBotConfig {
+  name: string;
+  token: string;
+}
+
 export interface SchedulerConfig {
   convexUrl: string;
-  discordBotToken: string;
+  agentBots: AgentBotConfig[];
   discordWebhookUrl: string;
   discordChannelId?: string;
 }
 
 export class AgentScheduler {
   private config: SchedulerConfig;
-  private discord: DiscordClient;
   private jobs: CronJob[] = [];
   private agents: any[] = [];
 
   constructor(config: SchedulerConfig) {
     this.config = config;
-
-    this.discord = new DiscordClient({
-      botToken: config.discordBotToken,
-      webhookUrl: config.discordWebhookUrl,
-      agentWorkspaceChannelId: config.discordChannelId,
-    });
   }
 
   async start(): Promise<void> {
     console.log('Starting Kuruvi Agent Scheduler...');
+    console.log(`Configuring ${this.config.agentBots.length} agent bots...`);
 
-    // Connect to Discord
-    await this.discord.connect();
-    console.log('Discord client connected');
+    // Map bot tokens to agent classes
+    const botTokenMap = this.config.agentBots.reduce((acc, bot) => {
+      acc[bot.name.toLowerCase()] = bot.token;
+      return acc;
+    }, {} as Record<string, string>);
 
-    // Initialize agents
-    this.agents = [
-      new AdaAgent(this.config.convexUrl, this.discord),
-      // new BoltAgent(this.config.convexUrl, this.discord),
-      // new SageAgent(this.config.convexUrl, this.discord),
-      // ... other agents
-    ];
+    // Initialize agents with their individual bot tokens
+    const agentPromises = [];
+
+    if (botTokenMap['ada']) {
+      const ada = new AdaAgent(
+        this.config.convexUrl,
+        botTokenMap['ada'],
+        this.config.discordWebhookUrl,
+        this.config.discordChannelId
+      );
+      agentPromises.push(ada.initialize().then(() => ada));
+    }
+
+    // TODO: Add other agents when their bot tokens are configured
+    // if (botTokenMap['bolt']) {
+    //   const bolt = new BoltAgent(...);
+    //   agentPromises.push(bolt.initialize().then(() => bolt));
+    // }
+
+    // Wait for all agents to connect
+    this.agents = await Promise.all(agentPromises);
 
     console.log(`Initialized ${this.agents.length} agents`);
 
@@ -66,14 +80,20 @@ export class AgentScheduler {
       console.log(`Scheduled ${agent.config.name} to run every 15 minutes (offset: ${minuteOffset}m)`);
     });
 
-    // Send startup notification
-    await this.discord.sendAgentUpdate(
-      `🐦 **Kuruvi Agent System Started**\n\n` +
-      `${this.agents.length} agents are now active and checking for tasks every 15 minutes.\n\n` +
-      `Agents: ${this.agents.map(a => `${a.config.emoji} ${a.config.name}`).join(', ')}`
-    );
-
     console.log('Agent scheduler running');
+
+    // Send startup notification via webhook
+    await fetch(this.config.discordWebhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content:
+          `🐦 **Kuruvi Agent System Started**\n\n` +
+          `${this.agents.length} agents are now active and checking for tasks every 15 minutes.\n\n` +
+          `Agents: ${this.agents.map(a => `${a.config.emoji} ${a.config.name}`).join(', ')}\n\n` +
+          `You can DM any agent directly to create tasks!`,
+      }),
+    });
   }
 
   async stop(): Promise<void> {
@@ -83,8 +103,8 @@ export class AgentScheduler {
     this.jobs.forEach((job) => job.stop());
     this.jobs = [];
 
-    // Disconnect Discord
-    await this.discord.disconnect();
+    // Disconnect all agent Discord clients
+    await Promise.all(this.agents.map(agent => agent.shutdown()));
 
     console.log('Agent scheduler stopped');
   }
