@@ -70,7 +70,7 @@ const agents: readonly Agent[] = [
   {
     id: "nitty",
     name: "Nitty",
-    trait: "The Debugger",
+    trait: "The QA Engineer",
     avatar: "Ν",
     accentColor: "#dc2626",
     accentBg: "#fef2f2",
