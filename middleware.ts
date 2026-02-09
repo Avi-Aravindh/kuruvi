@@ -20,8 +20,8 @@ export function middleware(request: NextRequest) {
 
   const authToken = request.cookies.get(AUTH_COOKIE)?.value;
 
-  // Check for valid auth token
-  if (!authToken || authToken !== process.env.KURUVI_AUTH_TOKEN) {
+  // Check if auth cookie exists
+  if (!authToken) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);

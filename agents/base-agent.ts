@@ -31,6 +31,7 @@ export abstract class BaseAgent {
   protected convex: ConvexHttpClient;
   protected discord: DiscordClient;
   protected sharedWebhookUrl: string;
+  private pendingDMs: any[] = [];
 
   constructor(
     config: AgentConfig,
@@ -55,6 +56,12 @@ export abstract class BaseAgent {
   async initialize(): Promise<void> {
     await this.discord.connect();
     console.log(`[${this.config.name}] Discord bot connected`);
+
+    // Set up real-time DM listener
+    this.discord.onDirectMessage(async (message) => {
+      console.log(`[${this.config.name}] Received DM: ${message.content.substring(0, 50)}...`);
+      this.pendingDMs.push(message);
+    });
   }
 
   async shutdown(): Promise<void> {
@@ -105,10 +112,13 @@ export abstract class BaseAgent {
    * Check Discord DMs for new task requests
    */
   private async checkDirectMessages(): Promise<Task[]> {
-    const dms = await this.discord.getUnreadDMs();
     const tasks: Task[] = [];
 
-    for (const dm of dms) {
+    // Process all pending DMs
+    const dmsToProcess = [...this.pendingDMs];
+    this.pendingDMs = []; // Clear the queue
+
+    for (const dm of dmsToProcess) {
       // Create a task from DM content
       const taskId = await this.convex.mutation(api.tasks.create, {
         title: dm.content.substring(0, 200), // Truncate if too long
