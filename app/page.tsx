@@ -332,10 +332,10 @@ export default function Home() {
                     </span>
                     {agentTasks.length > 0 && (
                       <button
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.stopPropagation();
                           if (confirm(`Delete all ${agentTasks.length} tasks for ${agent.name}?`)) {
-                            deleteAllByAgent({ agent: agent.id });
+                            await deleteAllByAgent({ agent: agent.id });
                           }
                         }}
                         className="flex items-center justify-center"
@@ -783,9 +783,9 @@ function TaskCard({
 
             {/* Delete */}
             <button
-              onClick={(e) => {
+              onClick={async (e) => {
                 e.stopPropagation();
-                deleteTask({ taskId: task._id });
+                await deleteTask({ taskId: task._id });
               }}
               className="flex items-center gap-1.5"
               style={{
