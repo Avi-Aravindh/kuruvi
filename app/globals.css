@@ -104,3 +104,71 @@ body {
 .animate-spin {
   animation: spin 1s linear infinite;
 }
+
+/* Hover-only styles - prevents sticky hover on touch devices */
+@media (hover: hover) {
+  .btn-clear-all:hover {
+    background: #ef4444 !important;
+    color: #ffffff !important;
+    border-color: #ef4444 !important;
+  }
+
+  .btn-new:hover {
+    background: #4f46e5 !important;
+  }
+
+  .btn-agent-header:hover {
+    filter: brightness(0.96);
+  }
+
+  .btn-agent-delete:hover {
+    background: #ef4444 !important;
+    color: #ffffff !important;
+  }
+
+  .btn-agent-add:hover {
+    background: var(--agent-accent-color) !important;
+    color: #ffffff !important;
+  }
+
+  .btn-show-completed:hover {
+    color: #6b7280 !important;
+    background: #f9fafb !important;
+  }
+
+  .btn-modal-cancel:hover {
+    background: #f3f4f6 !important;
+    color: #374151 !important;
+  }
+
+  .btn-modal-create:hover:not(:disabled) {
+    background: #4f46e5 !important;
+  }
+
+  .btn-modal-confirm:hover {
+    background: #dc2626 !important;
+  }
+
+  .btn-reassign:hover {
+    opacity: 0.7 !important;
+  }
+
+  .btn-delete:hover {
+    color: #ef4444 !important;
+  }
+
+  .btn-move-menu-item:hover {
+    background: var(--agent-accent-bg) !important;
+  }
+
+  .btn-status-queued:hover {
+    border-color: #16a34a !important;
+  }
+
+  .task-card:hover {
+    background: #ffffff !important;
+    border-color: #e5e7eb !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02) !important;
+    opacity: 1 !important;
+  }
+}

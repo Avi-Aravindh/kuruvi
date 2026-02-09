@@ -275,7 +275,7 @@ export default function Home() {
                   }
                 }}
                 aria-label="Delete all tasks"
-                className="flex items-center gap-1.5"
+                className="btn-clear-all flex items-center gap-1.5"
                 style={{
                   height: "34px",
                   padding: "0 14px",
@@ -288,16 +288,6 @@ export default function Home() {
                   cursor: "pointer",
                   transition: "all 0.15s",
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#ef4444";
-                  e.currentTarget.style.color = "#ffffff";
-                  e.currentTarget.style.borderColor = "#ef4444";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "#ffffff";
-                  e.currentTarget.style.color = "#9ca3af";
-                  e.currentTarget.style.borderColor = "#e5e7eb";
-                }}
               >
                 <TrashIcon />
                 <span className="hidden sm:inline">Clear All</span>
@@ -306,7 +296,7 @@ export default function Home() {
             <button
               onClick={() => setShowNewTask(true)}
               aria-label="Create new task"
-              className="flex items-center gap-1.5"
+              className="btn-new flex items-center gap-1.5"
               style={{
                 height: "34px",
                 padding: "0 14px",
@@ -319,8 +309,6 @@ export default function Home() {
                 cursor: "pointer",
                 transition: "background 0.15s",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "#4f46e5")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "#6366f1")}
             >
               <PlusIcon />
               <span className="hidden sm:inline">New</span>
@@ -360,7 +348,7 @@ export default function Home() {
                       [agent.id]: !prev[agent.id],
                     }))
                   }
-                  className="w-full flex items-center justify-between"
+                  className="btn-agent-header w-full flex items-center justify-between"
                   style={{
                     padding: "14px 16px",
                     background: agent.accentBg,
@@ -368,14 +356,7 @@ export default function Home() {
                     cursor: "pointer",
                     border: "none",
                     textAlign: "left",
-                    transition: "background 0.15s",
-                  }}
-                  onMouseEnter={(e) => {
-                    const brightness = agent.accentBg.replace(/[\d.]+\)$/g, "0.08)");
-                    e.currentTarget.style.background = brightness;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = agent.accentBg;
+                    transition: "filter 0.15s",
                   }}
                 >
                   <div className="flex items-center gap-3">
@@ -448,7 +429,7 @@ export default function Home() {
                           }
                         }}
                         aria-label={`Delete all tasks for ${agent.name}`}
-                        className="flex items-center justify-center"
+                        className="btn-agent-delete flex items-center justify-center"
                         style={{
                           width: "28px",
                           height: "28px",
@@ -458,14 +439,6 @@ export default function Home() {
                           color: "#9ca3af",
                           cursor: "pointer",
                           transition: "all 0.15s",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = "#ef4444";
-                          e.currentTarget.style.color = "#ffffff";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = "#ffffff";
-                          e.currentTarget.style.color = "#9ca3af";
                         }}
                       >
                         <TrashIcon />
@@ -478,7 +451,7 @@ export default function Home() {
                         setShowNewTask(true);
                       }}
                       aria-label={`Create new task for ${agent.name}`}
-                      className="flex items-center justify-center"
+                      className="btn-agent-add flex items-center justify-center"
                       style={{
                         width: "28px",
                         height: "28px",
@@ -488,15 +461,8 @@ export default function Home() {
                         color: agent.accentColor,
                         cursor: "pointer",
                         transition: "all 0.15s",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = agent.accentColor;
-                        e.currentTarget.style.color = "#ffffff";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "#ffffff";
-                        e.currentTarget.style.color = agent.accentColor;
-                      }}
+                        "--agent-accent-color": agent.accentColor,
+                      } as React.CSSProperties}
                     >
                       <PlusIcon />
                     </button>
@@ -535,7 +501,7 @@ export default function Home() {
                               [agent.id]: !prev[agent.id],
                             }))
                           }
-                          className="flex items-center gap-2 w-full"
+                          className="btn-show-completed flex items-center gap-2 w-full"
                           style={{
                             padding: "8px 12px",
                             background: "transparent",
@@ -544,16 +510,8 @@ export default function Home() {
                             fontSize: "12px",
                             fontWeight: 500,
                             color: "#9ca3af",
-                            transition: "color 0.15s",
+                            transition: "all 0.15s",
                             borderRadius: "8px",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = "#6b7280";
-                            e.currentTarget.style.background = "#f9fafb";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.color = "#9ca3af";
-                            e.currentTarget.style.background = "transparent";
                           }}
                         >
                           <svg
@@ -718,7 +676,7 @@ function TaskCard({
 
   return (
     <div
-      className="group transition-card"
+      className="task-card group transition-card"
       role="button"
       tabIndex={0}
       style={{
@@ -736,19 +694,6 @@ function TaskCard({
           e.preventDefault();
           onToggleExpand();
         }
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = "#ffffff";
-        e.currentTarget.style.borderColor = "#e5e7eb";
-        e.currentTarget.style.boxShadow =
-          "0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)";
-        e.currentTarget.style.opacity = "1";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = isCompleted ? "#fafbfc" : "#ffffff";
-        e.currentTarget.style.borderColor = "transparent";
-        e.currentTarget.style.boxShadow = "none";
-        e.currentTarget.style.opacity = isCompleted ? "0.65" : "1";
       }}
     >
       {/* Title row */}
@@ -890,7 +835,7 @@ function TaskCard({
                   setShowMoveMenu(!showMoveMenu);
                 }}
                 aria-label="Reassign task to different agent"
-                className="flex items-center gap-1.5"
+                className="btn-reassign flex items-center gap-1.5"
                 style={{
                   fontSize: "12px",
                   fontWeight: 500,
@@ -901,8 +846,6 @@ function TaskCard({
                   padding: "4px 0",
                   transition: "opacity 0.15s",
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.7")}
-                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
               >
                 <MoveIcon />
                 Reassign
@@ -932,7 +875,7 @@ function TaskCard({
                 onDelete(task._id);
               }}
               aria-label="Delete task"
-              className="flex items-center gap-1.5"
+              className="btn-delete flex items-center gap-1.5"
               style={{
                 fontSize: "12px",
                 fontWeight: 500,
@@ -943,8 +886,6 @@ function TaskCard({
                 padding: "4px 0",
                 transition: "color 0.15s",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#ef4444")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "#d1d5db")}
             >
               <TrashIcon />
               Delete
@@ -1021,7 +962,7 @@ function MoveMenu({
               onMove(a.id);
               onClose();
             }}
-            className="flex items-center gap-2.5 w-full"
+            className="btn-move-menu-item flex items-center gap-2.5 w-full"
             style={{
               padding: "7px 10px",
               borderRadius: "7px",
@@ -1033,9 +974,8 @@ function MoveMenu({
               color: "#374151",
               transition: "background 0.1s",
               textAlign: "left",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = a.accentBg)}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              "--agent-accent-bg": a.accentBg,
+            } as React.CSSProperties}
           >
             <div
               className="flex items-center justify-center"
@@ -1259,6 +1199,7 @@ function NewTaskModal({
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}
+              className="btn-modal-cancel"
               style={{
                 height: "34px",
                 padding: "0 12px",
@@ -1271,20 +1212,13 @@ function NewTaskModal({
                 cursor: "pointer",
                 transition: "all 0.15s",
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#f3f4f6";
-                e.currentTarget.style.color = "#374151";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.color = "#6b7280";
-              }}
             >
               Cancel
             </button>
             <button
               onClick={onSubmit}
               disabled={!title.trim() || isCreating}
+              className="btn-modal-create"
               style={{
                 height: "34px",
                 padding: "0 16px",
@@ -1296,12 +1230,6 @@ function NewTaskModal({
                 border: "none",
                 cursor: title.trim() && !isCreating ? "pointer" : "not-allowed",
                 transition: "background 0.15s",
-              }}
-              onMouseEnter={(e) => {
-                if (title.trim() && !isCreating) e.currentTarget.style.background = "#4f46e5";
-              }}
-              onMouseLeave={(e) => {
-                if (title.trim() && !isCreating) e.currentTarget.style.background = "#6366f1";
               }}
             >
               {isCreating ? "Creating..." : "Create"}
@@ -1380,6 +1308,7 @@ function ConfirmModal({
         <div className="flex items-center justify-end gap-2">
           <button
             onClick={onCancel}
+            className="btn-modal-cancel"
             style={{
               height: "34px",
               padding: "0 12px",
@@ -1392,19 +1321,12 @@ function ConfirmModal({
               cursor: "pointer",
               transition: "all 0.15s",
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#f3f4f6";
-              e.currentTarget.style.color = "#374151";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = "#6b7280";
-            }}
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
+            className="btn-modal-confirm"
             style={{
               height: "34px",
               padding: "0 16px",
@@ -1417,8 +1339,6 @@ function ConfirmModal({
               cursor: "pointer",
               transition: "background 0.15s",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#dc2626")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "#ef4444")}
           >
             {confirmLabel}
           </button>
@@ -1575,7 +1495,7 @@ function StatusIndicator({
       onClick={onClick}
       disabled={isLoading}
       aria-label={`Mark task "${taskTitle}" as complete`}
-      className="flex items-center justify-center"
+      className="btn-status-queued flex items-center justify-center"
       style={{
         width: "16px",
         height: "16px",
@@ -1587,8 +1507,6 @@ function StatusIndicator({
         transition: "border-color 0.15s",
         opacity: isLoading ? 0.6 : 1,
       }}
-      onMouseEnter={(e) => !isLoading && (e.currentTarget.style.borderColor = "#16a34a")}
-      onMouseLeave={(e) => !isLoading && (e.currentTarget.style.borderColor = "#d1d5db")}
     >
       {isLoading && (
         <div
