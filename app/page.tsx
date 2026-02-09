@@ -698,6 +698,8 @@ function TaskCard({
   return (
     <div
       className="group transition-card"
+      role="button"
+      tabIndex={0}
       style={{
         borderRadius: "8px",
         padding: "10px 12px",
@@ -708,6 +710,12 @@ function TaskCard({
         transition: "all 0.15s ease",
       }}
       onClick={onToggleExpand}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onToggleExpand();
+        }
+      }}
       onMouseEnter={(e) => {
         e.currentTarget.style.background = "#ffffff";
         e.currentTarget.style.borderColor = "#e5e7eb";
