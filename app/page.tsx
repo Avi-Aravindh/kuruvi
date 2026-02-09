@@ -1066,7 +1066,7 @@ function NewTaskModal({
     <div
       className="fixed inset-0 z-50 flex items-start justify-center modal-overlay"
       style={{
-        backgroundColor: "rgba(0, 0, 0, 0.15)",
+        backgroundColor: "rgba(17, 24, 39, 0.25)",
         backdropFilter: "blur(2px)",
         paddingTop: "15vh",
       }}
@@ -1081,7 +1081,7 @@ function NewTaskModal({
           background: "#ffffff",
           border: "1px solid #e5e7eb",
           boxShadow:
-            "0 20px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.04)",
+            "0 25px 50px -12px rgba(0,0,0,0.15), 0 0 0 1px rgba(99, 102, 241, 0.05)",
         }}
       >
         {/* Title input */}
