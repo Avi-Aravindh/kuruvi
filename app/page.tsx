@@ -1076,6 +1076,7 @@ function NewTaskModal({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="What needs to be done?"
+            maxLength={200}
             style={{
               width: "100%",
               fontSize: "16px",
@@ -1093,6 +1094,17 @@ function NewTaskModal({
               }
             }}
           />
+          {title.length > 0 && (
+            <div
+              style={{
+                fontSize: "11px",
+                color: title.length >= 200 ? "#ef4444" : "#9ca3af",
+                marginTop: "4px",
+              }}
+            >
+              {title.length}/200
+            </div>
+          )}
         </div>
 
         {/* Description input */}
