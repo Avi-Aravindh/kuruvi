@@ -586,7 +586,7 @@ export default function Home() {
                   alignItems: "center",
                   justifyContent: "center",
                   marginBottom: "16px",
-                  opacity: 0.2,
+                  opacity: 0.35,
                 }}
               >
                 <svg
@@ -616,6 +616,25 @@ export default function Home() {
               <span style={{ fontSize: "13px", color: "#c4c8cf" }}>
                 Click "New" to create your first task
               </span>
+              <button
+                onClick={() => setShowNewTask(true)}
+                style={{
+                  marginTop: "16px",
+                  padding: "8px 16px",
+                  borderRadius: "8px",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  background: "#6366f1",
+                  color: "#ffffff",
+                  border: "none",
+                  cursor: "pointer",
+                  transition: "background 0.15s",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "#4f46e5")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "#6366f1")}
+              >
+                Create your first task
+              </button>
             </div>
           )}
         </div>
