@@ -90,9 +90,9 @@ const agents: readonly Agent[] = [
 // ─── Priority Configuration ─────────────────────────────────────────────────
 const priorityConfig = {
   urgent: { label: "Urgent", color: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
-  high: { label: "High", color: "#ea580c", bg: "#fff7ed", border: "#fed7aa" },
-  medium: { label: "Medium", color: "#6366f1", bg: "#eef2ff", border: "#c7d2fe" },
-  low: { label: "Low", color: "#9ca3af", bg: "#f9fafb", border: "#e5e7eb" },
+  high: { label: "High", color: "#f97316", bg: "#fff7ed", border: "#fed7aa" },
+  medium: { label: "Medium", color: "#8b5cf6", bg: "#f5f3ff", border: "#ddd6fe" },
+  low: { label: "Low", color: "#64748b", bg: "#f8fafc", border: "#e2e8f0" },
 } as const;
 
 type Priority = keyof typeof priorityConfig;
