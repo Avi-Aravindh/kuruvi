@@ -1,6 +1,7 @@
 import { CronJob } from 'cron';
 import { HelixAgent } from './helix';
 import { AdaAgent } from './ada';
+import { TuringAgent } from './turing';
 // Import other agents as we create them
 
 export interface AgentBotConfig {
@@ -59,10 +60,21 @@ export class AgentScheduler {
       agentPromises.push(ada.initialize().then(() => ada));
     }
 
+    // Turing - The Efficiency Expert
+    if (botTokenMap['turing']) {
+      const turing = new TuringAgent(
+        this.config.convexUrl,
+        botTokenMap['turing'],
+        this.config.discordWebhookUrl,
+        this.config.discordChannelId
+      );
+      agentPromises.push(turing.initialize().then(() => turing));
+    }
+
     // TODO: Add other agents when their bot tokens are configured
-    // if (botTokenMap['flash']) {
-    //   const flash = new FlashAgent(...);
-    //   agentPromises.push(flash.initialize().then(() => flash));
+    // if (botTokenMap['steve']) {
+    //   const steve = new SteveAgent(...);
+    //   agentPromises.push(steve.initialize().then(() => steve));
     // }
 
     // Wait for all agents to connect
@@ -77,38 +89,28 @@ export class AgentScheduler {
       console.log(`✅ Helix is now ALWAYS ON - listening for DMs in real-time`);
     }
 
-    // Schedule specialists (not Helix) to run in cycles - only ONE active at a time
-    // Cycle: Ada → Turing → Steve → Jony → Nitty → Wanderer → repeat
-    // Each agent runs once every (10min × number of specialists)
+    // Schedule all specialists to check their queues every 2 minutes
     const specialists = this.agents.filter(a => a.config.id !== 'helix');
 
     if (specialists.length > 0) {
-      let currentAgentIndex = 0;
+      // Each specialist gets their own cron job running every 2 minutes
+      specialists.forEach(agent => {
+        const job = new CronJob('*/2 * * * *', async () => {
+          try {
+            await agent.run();
+          } catch (error) {
+            console.error(`Error running ${agent.config.name}:`, error);
+          }
+        });
 
-      // Create a single job that rotates through all specialists
-      const rotationJob = new CronJob('*/10 * * * *', async () => {
-        const currentAgent = specialists[currentAgentIndex];
-
-        try {
-          console.log(`\n🔄 Cycle ${Math.floor(currentAgentIndex / specialists.length) + 1}: Running ${currentAgent.config.name}...`);
-          await currentAgent.run();
-        } catch (error) {
-          console.error(`Error running ${currentAgent.config.name}:`, error);
-        }
-
-        // Move to next agent in rotation
-        currentAgentIndex = (currentAgentIndex + 1) % specialists.length;
+        job.start();
+        this.jobs.push(job);
       });
 
-      rotationJob.start();
-      this.jobs.push(rotationJob);
-
-      const cycleTime = specialists.length * 10; // Total minutes for one full cycle
       console.log(
-        `✅ Scheduled ${specialists.length} specialists in rotation:\n` +
-        `   ${specialists.map(a => a.config.name).join(' → ')}\n` +
-        `   Each runs every ${cycleTime} minutes (one full cycle)\n` +
-        `   Current order: Every 10min, next agent activates`
+        `✅ Scheduled ${specialists.length} specialists:\n` +
+        `   ${specialists.map(a => `${a.config.emoji} ${a.config.name}`).join(', ')}\n` +
+        `   Each checks their queue every 2 minutes`
       );
     }
 
@@ -116,8 +118,6 @@ export class AgentScheduler {
 
     // Send startup notification via webhook
     const helixStatus = helixAgent ? '⚡ **Helix is ALWAYS ON** - DM me anytime for instant response!' : '';
-
-    const specialists = this.agents.filter(a => a.config.id !== 'helix');
 
     await fetch(this.config.discordWebhookUrl, {
       method: 'POST',
@@ -127,9 +127,8 @@ export class AgentScheduler {
           `🐦 **Kuruvi Agent System Started**\n\n` +
           `${this.agents.length} agents configured!\n\n` +
           `${helixStatus}\n\n` +
-          `**Specialists run in cycles (one at a time, every 10min):**\n` +
-          `${specialists.map(a => `${a.config.emoji} ${a.config.name}`).join(' → ')}\n\n` +
-          `Full cycle: ${specialists.length * 10} minutes\n\n` +
+          `**Specialists check their queues every 2 minutes:**\n` +
+          `${specialists.map(a => `${a.config.emoji} ${a.config.name}`).join(', ')}\n\n` +
           `You can DM any agent directly to create tasks!`,
       }),
     });

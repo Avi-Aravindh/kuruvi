@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Message, TextChannel } from 'discord.js';
+import { Client, GatewayIntentBits, Message, TextChannel, Partials } from 'discord.js';
 
 export interface DiscordConfig {
   botToken: string;
@@ -22,6 +22,10 @@ export class DiscordClient {
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent, // Required for reading DM content
         GatewayIntentBits.DirectMessages,
+      ],
+      partials: [
+        Partials.Channel, // Required to receive DMs
+        Partials.Message,
       ],
     });
 
@@ -102,12 +106,20 @@ export class DiscordClient {
    */
   onDirectMessage(callback: (message: Message) => void | Promise<void>): () => void {
     const handler = async (message: Message) => {
+      console.log(`[Discord] Message received: ${message.content.substring(0, 50)}... from ${message.author.username} (isDM: ${!message.guild})`);
+
       // Ignore bot's own messages
-      if (message.author.id === this.client.user?.id) return;
+      if (message.author.id === this.client.user?.id) {
+        console.log('[Discord] Ignoring own message');
+        return;
+      }
 
       // Only process DMs (no guild)
       if (!message.guild) {
+        console.log('[Discord] Processing DM...');
         await callback(message);
+      } else {
+        console.log('[Discord] Ignoring guild message');
       }
     };
 
@@ -131,8 +143,8 @@ export class DiscordClient {
     );
 
     for (const [, channel] of dmChannels) {
-      if (channel.isTextBased()) {
-        const messages = await (channel as TextChannel).messages.fetch({ limit: 10 });
+      if (channel.isTextBased() && 'messages' in channel) {
+        const messages = await channel.messages.fetch({ limit: 10 });
 
         // Filter for messages not from the bot
         const userMessages = messages.filter(

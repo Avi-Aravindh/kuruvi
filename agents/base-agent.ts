@@ -4,7 +4,7 @@ import { DiscordClient } from './discord-client';
 import type { Id } from '../convex/_generated/dataModel';
 
 export interface AgentConfig {
-  id: 'ada' | 'bolt' | 'sage' | 'nova' | 'atlas' | 'ember' | 'orbit';
+  id: 'helix' | 'ada' | 'turing' | 'steve' | 'jony' | 'nitty' | 'wanderer';
   name: string;
   trait: string;
   emoji: string;

@@ -5,7 +5,7 @@ import { api } from "../convex/_generated/api";
 import { useState, useRef, useEffect } from "react";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
-type AgentId = "ada" | "bolt" | "sage" | "nova" | "atlas" | "ember" | "orbit";
+type AgentId = "helix" | "ada" | "turing" | "steve" | "jony" | "nitty" | "wanderer";
 
 interface Agent {
   id: AgentId;
@@ -22,64 +22,64 @@ interface Agent {
 // Each agent has their own queue of unrelated tasks.
 const agents: readonly Agent[] = [
   {
+    id: "helix",
+    name: "Helix",
+    trait: "Squad Lead",
+    avatar: "Η",
+    accentColor: "#8b5cf6",
+    accentBg: "#faf5ff",
+    accentBorder: "#e9d5ff",
+  },
+  {
     id: "ada",
     name: "Ada",
     trait: "The Architect",
-    avatar: "\u0391", // Alpha
+    avatar: "Α",
     accentColor: "#6366f1",
     accentBg: "#eef2ff",
     accentBorder: "#c7d2fe",
   },
   {
-    id: "bolt",
-    name: "Bolt",
-    trait: "The Builder",
-    avatar: "\u26A1",
-    accentColor: "#d97706",
-    accentBg: "#fffbeb",
-    accentBorder: "#fde68a",
-  },
-  {
-    id: "sage",
-    name: "Sage",
-    trait: "The Strategist",
-    avatar: "\u2666",
+    id: "turing",
+    name: "Turing",
+    trait: "Efficiency Expert",
+    avatar: "Τ",
     accentColor: "#059669",
     accentBg: "#ecfdf5",
     accentBorder: "#a7f3d0",
   },
   {
-    id: "nova",
-    name: "Nova",
-    trait: "The Creator",
-    avatar: "\u2726",
+    id: "steve",
+    name: "Steve",
+    trait: "The Visionary",
+    avatar: "Σ",
+    accentColor: "#d97706",
+    accentBg: "#fffbeb",
+    accentBorder: "#fde68a",
+  },
+  {
+    id: "jony",
+    name: "Jony",
+    trait: "The Designer",
+    avatar: "Ι",
     accentColor: "#9333ea",
     accentBg: "#faf5ff",
     accentBorder: "#e9d5ff",
   },
   {
-    id: "atlas",
-    name: "Atlas",
-    trait: "The Organizer",
-    avatar: "\u25CE",
-    accentColor: "#2563eb",
-    accentBg: "#eff6ff",
-    accentBorder: "#bfdbfe",
-  },
-  {
-    id: "ember",
-    name: "Ember",
+    id: "nitty",
+    name: "Nitty",
     trait: "The Debugger",
-    avatar: "\u2740",
+    avatar: "Ν",
     accentColor: "#dc2626",
     accentBg: "#fef2f2",
     accentBorder: "#fecaca",
   },
   {
-    id: "orbit",
-    name: "Orbit",
+    id: "wanderer",
+    name: "Wanderer",
     trait: "The Explorer",
-    avatar: "\u25E0",
+    avatar: "Ω",
     accentColor: "#0891b2",
     accentBg: "#ecfeff",
     accentBorder: "#a5f3fc",
