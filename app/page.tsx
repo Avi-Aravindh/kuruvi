@@ -272,6 +272,7 @@ export default function Home() {
                     await deleteAllTasks();
                   }
                 }}
+                aria-label="Delete all tasks"
                 className="flex items-center gap-1.5"
                 style={{
                   height: "34px",
@@ -302,6 +303,7 @@ export default function Home() {
             )}
             <button
               onClick={() => setShowNewTask(true)}
+              aria-label="Create new task"
               className="flex items-center gap-1.5"
               style={{
                 height: "34px",
@@ -443,6 +445,7 @@ export default function Home() {
                             await deleteAllByAgent({ agent: agent.id });
                           }
                         }}
+                        aria-label={`Delete all tasks for ${agent.name}`}
                         className="flex items-center justify-center"
                         style={{
                           width: "28px",
@@ -472,6 +475,7 @@ export default function Home() {
                         setNewTaskAgent(agent.id);
                         setShowNewTask(true);
                       }}
+                      aria-label={`Create new task for ${agent.name}`}
                       className="flex items-center justify-center"
                       style={{
                         width: "28px",
@@ -736,6 +740,7 @@ function TaskCard({
           <StatusIndicator
             status={task.status}
             accentColor={agent.accentColor}
+            taskTitle={task.title}
             onClick={(e: React.MouseEvent) => {
               e.stopPropagation();
               if (task.status === "completed") {
@@ -860,6 +865,7 @@ function TaskCard({
                   e.stopPropagation();
                   setShowMoveMenu(!showMoveMenu);
                 }}
+                aria-label="Reassign task to different agent"
                 className="flex items-center gap-1.5"
                 style={{
                   fontSize: "12px",
@@ -901,6 +907,7 @@ function TaskCard({
                 e.stopPropagation();
                 await deleteTask({ taskId: task._id });
               }}
+              aria-label="Delete task"
               className="flex items-center gap-1.5"
               style={{
                 fontSize: "12px",
@@ -1282,16 +1289,19 @@ function NewTaskModal({
 function StatusIndicator({
   status,
   accentColor,
+  taskTitle,
   onClick,
 }: {
   status: string;
   accentColor: string;
+  taskTitle: string;
   onClick: (e: React.MouseEvent) => void;
 }) {
   if (status === "completed") {
     return (
       <button
         onClick={onClick}
+        aria-label={`Mark task "${taskTitle}" as incomplete`}
         className="flex items-center justify-center"
         style={{
           width: "16px",
@@ -1323,6 +1333,7 @@ function StatusIndicator({
     return (
       <button
         onClick={onClick}
+        aria-label={`Mark task "${taskTitle}" as complete`}
         className="flex items-center justify-center"
         style={{
           width: "16px",
@@ -1351,6 +1362,7 @@ function StatusIndicator({
     return (
       <button
         onClick={onClick}
+        aria-label={`Mark task "${taskTitle}" as complete`}
         className="flex items-center justify-center"
         style={{
           width: "16px",
@@ -1377,6 +1389,7 @@ function StatusIndicator({
   return (
     <button
       onClick={onClick}
+      aria-label={`Mark task "${taskTitle}" as complete`}
       style={{
         width: "16px",
         height: "16px",
