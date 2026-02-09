@@ -70,21 +70,19 @@ export class AgentScheduler {
 
     console.log(`Initialized ${this.agents.length} agents`);
 
-    // Schedule each agent
-    this.agents.forEach((agent, index) => {
-      let cronPattern: string;
-      let description: string;
+    // Start Helix in always-on mode if present
+    const helixAgent = this.agents.find(a => a.config.id === 'helix');
+    if (helixAgent && typeof helixAgent.startListening === 'function') {
+      await helixAgent.startListening();
+      console.log(`✅ Helix is now ALWAYS ON - listening for DMs in real-time`);
+    }
 
-      // Helix runs every 5 minutes (always responsive)
-      if (agent.config.id === 'helix') {
-        cronPattern = '*/5 * * * *'; // Every 5 minutes
-        description = 'every 5 minutes (coordinator - always responsive)';
-      } else {
-        // Other agents run every 15 minutes, staggered by 2 minutes
-        const minuteOffset = index * 2;
-        cronPattern = `${minuteOffset},${minuteOffset + 15},${minuteOffset + 30},${minuteOffset + 45} * * * *`;
-        description = `every 15 minutes (offset: ${minuteOffset}m)`;
-      }
+    // Schedule other agents (not Helix)
+    const otherAgents = this.agents.filter(a => a.config.id !== 'helix');
+    otherAgents.forEach((agent, index) => {
+      // Run every 15 minutes, staggered by 2 minutes
+      const minuteOffset = index * 2;
+      const cronPattern = `${minuteOffset},${minuteOffset + 15},${minuteOffset + 30},${minuteOffset + 45} * * * *`;
 
       const job = new CronJob(cronPattern, async () => {
         try {
@@ -97,20 +95,24 @@ export class AgentScheduler {
       job.start();
       this.jobs.push(job);
 
-      console.log(`Scheduled ${agent.config.name} to run ${description}`);
+      console.log(`Scheduled ${agent.config.name} to run every 15 minutes (offset: ${minuteOffset}m)`);
     });
 
     console.log('Agent scheduler running');
 
     // Send startup notification via webhook
+    const helixStatus = helixAgent ? '⚡ **Helix is ALWAYS ON** - DM me anytime for instant response!' : '';
+
     await fetch(this.config.discordWebhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         content:
           `🐦 **Kuruvi Agent System Started**\n\n` +
-          `${this.agents.length} agents are now active and checking for tasks every 15 minutes.\n\n` +
-          `Agents: ${this.agents.map(a => `${a.config.emoji} ${a.config.name}`).join(', ')}\n\n` +
+          `${this.agents.length} agents are now active!\n\n` +
+          `${helixStatus}\n\n` +
+          `Other agents check tasks every 15 minutes:\n` +
+          `${otherAgents.map(a => `${a.config.emoji} ${a.config.name}`).join(', ')}\n\n` +
           `You can DM any agent directly to create tasks!`,
       }),
     });
