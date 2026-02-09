@@ -1264,17 +1264,25 @@ function ConfirmModal({
   title: string;
   message: string;
   confirmLabel: string;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   onCancel: () => void;
 }) {
+  const [isConfirming, setIsConfirming] = useState(false);
+
+  const handleConfirm = async () => {
+    setIsConfirming(true);
+    await onConfirm();
+    setIsConfirming(false);
+  };
+
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
       if (e.key === "Escape") onCancel();
-      if (e.key === "Enter") onConfirm();
+      if (e.key === "Enter" && !isConfirming) await handleConfirm();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onConfirm, onCancel]);
+  }, [onConfirm, onCancel, isConfirming]);
 
   return (
     <div
@@ -1337,7 +1345,8 @@ function ConfirmModal({
             Cancel
           </button>
           <button
-            onClick={onConfirm}
+            onClick={handleConfirm}
+            disabled={isConfirming}
             className="btn-modal-confirm"
             style={{
               height: "34px",
@@ -1345,14 +1354,14 @@ function ConfirmModal({
               borderRadius: "8px",
               fontSize: "13px",
               fontWeight: 500,
-              background: "#ef4444",
+              background: isConfirming ? "#fca5a5" : "#ef4444",
               color: "#ffffff",
               border: "none",
-              cursor: "pointer",
+              cursor: isConfirming ? "not-allowed" : "pointer",
               transition: "background 0.15s",
             }}
           >
-            {confirmLabel}
+            {isConfirming ? "Deleting..." : confirmLabel}
           </button>
         </div>
       </div>
