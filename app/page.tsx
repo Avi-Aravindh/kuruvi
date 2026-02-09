@@ -271,7 +271,12 @@ export default function Home() {
               <button
                 onClick={async () => {
                   if (confirm(`Delete all ${tasks.length} tasks? This cannot be undone.`)) {
-                    await deleteAllTasks();
+                    try {
+                      await deleteAllTasks();
+                    } catch (error) {
+                      console.error("Failed to delete all tasks:", error);
+                      alert("Failed to delete all tasks. Please try again.");
+                    }
                   }
                 }}
                 aria-label="Delete all tasks"
@@ -425,7 +430,12 @@ export default function Home() {
                         onClick={async (e) => {
                           e.stopPropagation();
                           if (confirm(`Delete all ${agentTasks.length} tasks for ${agent.name}?`)) {
-                            await deleteAllByAgent({ agent: agent.id });
+                            try {
+                              await deleteAllByAgent({ agent: agent.id });
+                            } catch (error) {
+                              console.error("Failed to delete tasks:", error);
+                              alert("Failed to delete tasks. Please try again.");
+                            }
                           }
                         }}
                         aria-label={`Delete all tasks for ${agent.name}`}
@@ -639,8 +649,13 @@ export default function Home() {
           message="This action cannot be undone."
           confirmLabel="Delete"
           onConfirm={async () => {
-            await deleteTask({ taskId: taskToDelete });
-            setTaskToDelete(null);
+            try {
+              await deleteTask({ taskId: taskToDelete });
+              setTaskToDelete(null);
+            } catch (error) {
+              console.error("Failed to delete task:", error);
+              alert("Failed to delete task. Please try again.");
+            }
           }}
           onCancel={() => setTaskToDelete(null)}
         />

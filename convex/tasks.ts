@@ -146,6 +146,10 @@ export const deleteTask = mutation({
     taskId: v.id("tasks"),
   },
   handler: async (ctx, args) => {
+    const task = await ctx.db.get(args.taskId);
+    if (!task) {
+      throw new Error(`Task ${args.taskId} not found`);
+    }
     await ctx.db.delete(args.taskId);
   },
 });
@@ -161,7 +165,9 @@ export const deleteAllByAgent = mutation({
       .withIndex("by_agent", (q) => q.eq("agent", args.agent as any))
       .collect();
 
+    console.log(`Deleting ${tasks.length} tasks for agent ${args.agent}`);
     await Promise.all(tasks.map((task) => ctx.db.delete(task._id)));
+    console.log(`Successfully deleted ${tasks.length} tasks for agent ${args.agent}`);
   },
 });
 
@@ -170,6 +176,8 @@ export const deleteAllTasks = mutation({
   args: {},
   handler: async (ctx) => {
     const tasks = await ctx.db.query("tasks").collect();
+    console.log(`Deleting all ${tasks.length} tasks`);
     await Promise.all(tasks.map((task) => ctx.db.delete(task._id)));
+    console.log(`Successfully deleted all ${tasks.length} tasks`);
   },
 });
