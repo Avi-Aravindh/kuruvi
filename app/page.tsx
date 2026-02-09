@@ -140,18 +140,20 @@ export default function Home() {
   const totalActive = tasks.filter((t: any) => t.status !== "completed").length;
   const totalCompleted = tasks.filter((t: any) => t.status === "completed").length;
 
+  const [collapsedAgents, setCollapsedAgents] = useState<Record<string, boolean>>({});
+
   return (
-    <div className="h-screen flex flex-col overflow-hidden" style={{ background: "#fafbfc" }}>
+    <div className="h-screen flex flex-col" style={{ background: "#ffffff" }}>
       {/* ─── Header ──────────────────────────────────────────────────── */}
       <header
-        className="flex-shrink-0"
+        className="flex-shrink-0 sticky top-0 z-10"
         style={{
           background: "#ffffff",
           borderBottom: "1px solid #e5e7eb",
         }}
       >
-        <div className="flex items-center justify-between px-6 h-14">
-          <div className="flex items-center gap-5">
+        <div className="flex items-center justify-between px-4 sm:px-6 h-14">
+          <div className="flex items-center gap-3 sm:gap-5">
             <div className="flex items-center gap-2.5">
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center"
@@ -188,15 +190,9 @@ export default function Home() {
               className="hidden sm:flex items-center gap-3"
               style={{ fontSize: "13px", color: "#6b7280" }}
             >
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full" style={{ background: "#6366f1" }} />
-                <span>{totalActive} active</span>
-              </div>
+              <span>{totalActive} active</span>
               <span style={{ color: "#d1d5db" }}>/</span>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full" style={{ background: "#16a34a" }} />
-                <span>{totalCompleted} done</span>
-              </div>
+              <span>{totalCompleted} done</span>
             </div>
           </div>
 
@@ -219,93 +215,124 @@ export default function Home() {
             onMouseLeave={(e) => (e.currentTarget.style.background = "#6366f1")}
           >
             <PlusIcon />
-            <span className="hidden sm:inline">New Task</span>
+            <span className="hidden sm:inline">New</span>
           </button>
         </div>
       </header>
 
-      {/* ─── Agent Queues ────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-x-auto overflow-y-hidden">
-        <div className="flex h-full" style={{ minWidth: "fit-content" }}>
+      {/* ─── List View with Agent Grouping ────────────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto" style={{ background: "#fafbfc" }}>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
           {agents.map((agent) => {
             const agentTasks = tasksByAgent[agent.id] || [];
             const activeTasks = agentTasks.filter((t: any) => t.status !== "completed");
             const completedTasks = agentTasks.filter((t: any) => t.status === "completed");
+            const isCollapsed = collapsedAgents[agent.id] || false;
             const isShowingCompleted = showCompleted[agent.id] || false;
+
+            if (agentTasks.length === 0) return null;
 
             return (
               <div
                 key={agent.id}
-                className="flex flex-col h-full"
                 style={{
-                  width: "296px",
-                  minWidth: "296px",
-                  borderRight: "1px solid #f0f0f0",
+                  marginBottom: "24px",
+                  background: "#ffffff",
+                  borderRadius: "12px",
+                  border: "1px solid #e5e7eb",
+                  overflow: "hidden",
                 }}
               >
-                {/* ─── Agent Header ─── */}
-                <div
-                  className="flex-shrink-0"
-                  style={{ padding: "16px 16px 12px" }}
+                {/* ─── Agent Header (Collapsible) ─── */}
+                <button
+                  onClick={() =>
+                    setCollapsedAgents((prev) => ({
+                      ...prev,
+                      [agent.id]: !prev[agent.id],
+                    }))
+                  }
+                  className="w-full flex items-center justify-between"
+                  style={{
+                    padding: "14px 16px",
+                    background: agent.accentBg,
+                    borderBottom: isCollapsed ? "none" : `1px solid ${agent.accentBorder}`,
+                    cursor: "pointer",
+                    border: "none",
+                    textAlign: "left",
+                    transition: "background 0.15s",
+                  }}
+                  onMouseEnter={(e) => {
+                    const brightness = agent.accentBg.replace(/[\d.]+\)$/g, "0.08)");
+                    e.currentTarget.style.background = brightness;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = agent.accentBg;
+                  }}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {/* Agent Avatar */}
-                      <div
-                        className="flex items-center justify-center"
-                        style={{
-                          width: "36px",
-                          height: "36px",
-                          borderRadius: "10px",
-                          background: agent.accentBg,
-                          border: `1.5px solid ${agent.accentBorder}`,
-                          fontSize: "16px",
-                          color: agent.accentColor,
-                          fontWeight: 600,
-                        }}
-                      >
-                        {agent.avatar}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span
-                            style={{
-                              fontSize: "14px",
-                              fontWeight: 600,
-                              color: "#111827",
-                            }}
-                          >
-                            {agent.name}
-                          </span>
-                          {activeTasks.length > 0 && (
-                            <span
-                              style={{
-                                fontSize: "12px",
-                                fontWeight: 500,
-                                color: agent.accentColor,
-                                background: agent.accentBg,
-                                padding: "1px 7px",
-                                borderRadius: "10px",
-                              }}
-                            >
-                              {activeTasks.length}
-                            </span>
-                          )}
-                        </div>
+                  <div className="flex items-center gap-3">
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 10 10"
+                      fill={agent.accentColor}
+                      style={{
+                        transform: isCollapsed ? "rotate(0deg)" : "rotate(90deg)",
+                        transition: "transform 0.2s ease",
+                      }}
+                    >
+                      <path d="M3 1l4 4-4 4" />
+                    </svg>
+                    <div
+                      className="flex items-center justify-center"
+                      style={{
+                        width: "32px",
+                        height: "32px",
+                        borderRadius: "8px",
+                        background: "#ffffff",
+                        border: `1.5px solid ${agent.accentBorder}`,
+                        fontSize: "14px",
+                        color: agent.accentColor,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {agent.avatar}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          style={{
+                            fontSize: "14px",
+                            fontWeight: 600,
+                            color: "#111827",
+                          }}
+                        >
+                          {agent.name}
+                        </span>
                         <span
                           style={{
                             fontSize: "12px",
-                            color: "#9ca3af",
-                            lineHeight: "1.2",
+                            color: "#6b7280",
                           }}
                         >
-                          {agent.trait}
+                          · {agent.trait}
                         </span>
                       </div>
                     </div>
+                  </div>
 
+                  <div className="flex items-center gap-3">
+                    <span
+                      style={{
+                        fontSize: "13px",
+                        fontWeight: 500,
+                        color: agent.accentColor,
+                      }}
+                    >
+                      {activeTasks.length}
+                    </span>
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setNewTaskAgent(agent.id);
                         setShowNewTask(true);
                       }}
@@ -315,135 +342,173 @@ export default function Home() {
                         height: "28px",
                         borderRadius: "7px",
                         border: "none",
-                        background: "transparent",
-                        color: "#9ca3af",
+                        background: "#ffffff",
+                        color: agent.accentColor,
                         cursor: "pointer",
                         transition: "all 0.15s",
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = agent.accentBg;
-                        e.currentTarget.style.color = agent.accentColor;
+                        e.currentTarget.style.background = agent.accentColor;
+                        e.currentTarget.style.color = "#ffffff";
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "transparent";
-                        e.currentTarget.style.color = "#9ca3af";
+                        e.currentTarget.style.background = "#ffffff";
+                        e.currentTarget.style.color = agent.accentColor;
                       }}
                     >
                       <PlusIcon />
                     </button>
                   </div>
-                </div>
+                </button>
 
                 {/* ─── Task List ─── */}
-                <div
-                  className="flex-1 overflow-y-auto agent-queue"
-                  style={{ padding: "0 8px 12px" }}
-                >
-                  <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                {!isCollapsed && (
+                  <div style={{ padding: "8px" }}>
                     {/* Active tasks */}
-                    {activeTasks.map((task: any) => (
-                      <TaskCard
-                        key={task._id}
-                        task={task}
-                        agent={agent}
-                        allAgents={agents}
-                        moveTask={moveTask}
-                        updateStatus={updateStatus}
-                        deleteTask={deleteTask}
-                        isExpanded={expandedTask === task._id}
-                        onToggleExpand={() =>
-                          setExpandedTask(expandedTask === task._id ? null : task._id)
-                        }
-                      />
-                    ))}
-                  </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                      {activeTasks.map((task: any) => (
+                        <TaskCard
+                          key={task._id}
+                          task={task}
+                          agent={agent}
+                          allAgents={agents}
+                          moveTask={moveTask}
+                          updateStatus={updateStatus}
+                          deleteTask={deleteTask}
+                          isExpanded={expandedTask === task._id}
+                          onToggleExpand={() =>
+                            setExpandedTask(expandedTask === task._id ? null : task._id)
+                          }
+                        />
+                      ))}
+                    </div>
 
-                  {/* Completed tasks section */}
-                  {completedTasks.length > 0 && (
-                    <div style={{ marginTop: activeTasks.length > 0 ? "8px" : "0" }}>
-                      <button
-                        onClick={() =>
-                          setShowCompleted((prev) => ({
-                            ...prev,
-                            [agent.id]: !prev[agent.id],
-                          }))
-                        }
-                        className="flex items-center gap-2 w-full"
-                        style={{
-                          padding: "6px 12px",
-                          background: "transparent",
-                          border: "none",
-                          cursor: "pointer",
-                          fontSize: "12px",
-                          fontWeight: 500,
-                          color: "#9ca3af",
-                          transition: "color 0.15s",
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.color = "#6b7280")}
-                        onMouseLeave={(e) => (e.currentTarget.style.color = "#9ca3af")}
-                      >
-                        <svg
-                          width="10"
-                          height="10"
-                          viewBox="0 0 10 10"
-                          fill="currentColor"
+                    {/* Completed tasks */}
+                    {completedTasks.length > 0 && (
+                      <div style={{ marginTop: activeTasks.length > 0 ? "8px" : "0" }}>
+                        <button
+                          onClick={() =>
+                            setShowCompleted((prev) => ({
+                              ...prev,
+                              [agent.id]: !prev[agent.id],
+                            }))
+                          }
+                          className="flex items-center gap-2 w-full"
                           style={{
-                            transform: isShowingCompleted ? "rotate(90deg)" : "rotate(0deg)",
-                            transition: "transform 0.15s ease",
+                            padding: "8px 12px",
+                            background: "transparent",
+                            border: "none",
+                            cursor: "pointer",
+                            fontSize: "12px",
+                            fontWeight: 500,
+                            color: "#9ca3af",
+                            transition: "color 0.15s",
+                            borderRadius: "8px",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = "#6b7280";
+                            e.currentTarget.style.background = "#f9fafb";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = "#9ca3af";
+                            e.currentTarget.style.background = "transparent";
                           }}
                         >
-                          <path d="M3 1l4 4-4 4" />
-                        </svg>
-                        <span>{completedTasks.length} completed</span>
-                      </button>
+                          <svg
+                            width="10"
+                            height="10"
+                            viewBox="0 0 10 10"
+                            fill="currentColor"
+                            style={{
+                              transform: isShowingCompleted ? "rotate(90deg)" : "rotate(0deg)",
+                              transition: "transform 0.15s ease",
+                            }}
+                          >
+                            <path d="M3 1l4 4-4 4" />
+                          </svg>
+                          <span>{completedTasks.length} completed</span>
+                        </button>
 
-                      {isShowingCompleted && (
-                        <div style={{ display: "flex", flexDirection: "column", gap: "2px", marginTop: "2px" }}>
-                          {completedTasks.map((task: any) => (
-                            <TaskCard
-                              key={task._id}
-                              task={task}
-                              agent={agent}
-                              allAgents={agents}
-                              moveTask={moveTask}
-                              updateStatus={updateStatus}
-                              deleteTask={deleteTask}
-                              isExpanded={expandedTask === task._id}
-                              onToggleExpand={() =>
-                                setExpandedTask(expandedTask === task._id ? null : task._id)
-                              }
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Empty state */}
-                  {agentTasks.length === 0 && (
-                    <div
-                      className="flex flex-col items-center justify-center"
-                      style={{
-                        padding: "48px 16px",
-                        color: "#d1d5db",
-                      }}
-                    >
-                      <span style={{ fontSize: "28px", opacity: 0.4 }}>{agent.avatar}</span>
-                      <span
-                        style={{
-                          fontSize: "13px",
-                          marginTop: "8px",
-                          color: "#c4c8cf",
-                        }}
-                      >
-                        No tasks yet
-                      </span>
-                    </div>
-                  )}
-                </div>
+                        {isShowingCompleted && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: "2px", marginTop: "2px" }}>
+                            {completedTasks.map((task: any) => (
+                              <TaskCard
+                                key={task._id}
+                                task={task}
+                                agent={agent}
+                                allAgents={agents}
+                                moveTask={moveTask}
+                                updateStatus={updateStatus}
+                                deleteTask={deleteTask}
+                                isExpanded={expandedTask === task._id}
+                                onToggleExpand={() =>
+                                  setExpandedTask(expandedTask === task._id ? null : task._id)
+                                }
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
+
+          {/* Empty state when no tasks at all */}
+          {tasks.length === 0 && (
+            <div
+              className="flex flex-col items-center justify-center"
+              style={{
+                padding: "80px 20px",
+                color: "#d1d5db",
+                textAlign: "center",
+              }}
+            >
+              <div
+                style={{
+                  width: "64px",
+                  height: "64px",
+                  borderRadius: "16px",
+                  background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: "16px",
+                  opacity: 0.2,
+                }}
+              >
+                <svg
+                  width="32"
+                  height="32"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z" />
+                  <line x1="16" y1="8" x2="2" y2="22" />
+                  <line x1="17.5" y1="15" x2="9" y2="15" />
+                </svg>
+              </div>
+              <span
+                style={{
+                  fontSize: "15px",
+                  fontWeight: 500,
+                  color: "#9ca3af",
+                  marginBottom: "8px",
+                }}
+              >
+                No tasks yet
+              </span>
+              <span style={{ fontSize: "13px", color: "#c4c8cf" }}>
+                Click "New" to create your first task
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
