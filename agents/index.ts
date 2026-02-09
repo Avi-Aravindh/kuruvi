@@ -24,11 +24,10 @@ function validateEnv() {
   const agentTokens = [
     'DISCORD_BOT_TOKEN_HELIX',
     'DISCORD_BOT_TOKEN_ADA',
-    'DISCORD_BOT_TOKEN_FLASH',
-    'DISCORD_BOT_TOKEN_ORACLE',
-    'DISCORD_BOT_TOKEN_MUSE',
-    'DISCORD_BOT_TOKEN_COMPASS',
-    'DISCORD_BOT_TOKEN_SLEUTH',
+    'DISCORD_BOT_TOKEN_TURING',
+    'DISCORD_BOT_TOKEN_STEVE',
+    'DISCORD_BOT_TOKEN_JONY',
+    'DISCORD_BOT_TOKEN_NITTY',
     'DISCORD_BOT_TOKEN_WANDERER',
   ];
 
@@ -54,11 +53,10 @@ async function main() {
   const agentBots = [
     { name: 'Helix', token: process.env.DISCORD_BOT_TOKEN_HELIX },
     { name: 'Ada', token: process.env.DISCORD_BOT_TOKEN_ADA },
-    { name: 'Flash', token: process.env.DISCORD_BOT_TOKEN_FLASH },
-    { name: 'Oracle', token: process.env.DISCORD_BOT_TOKEN_ORACLE },
-    { name: 'Muse', token: process.env.DISCORD_BOT_TOKEN_MUSE },
-    { name: 'Compass', token: process.env.DISCORD_BOT_TOKEN_COMPASS },
-    { name: 'Sleuth', token: process.env.DISCORD_BOT_TOKEN_SLEUTH },
+    { name: 'Turing', token: process.env.DISCORD_BOT_TOKEN_TURING },
+    { name: 'Steve', token: process.env.DISCORD_BOT_TOKEN_STEVE },
+    { name: 'Jony', token: process.env.DISCORD_BOT_TOKEN_JONY },
+    { name: 'Nitty', token: process.env.DISCORD_BOT_TOKEN_NITTY },
     { name: 'Wanderer', token: process.env.DISCORD_BOT_TOKEN_WANDERER },
   ].filter((bot) => bot.token) as { name: string; token: string }[];
 

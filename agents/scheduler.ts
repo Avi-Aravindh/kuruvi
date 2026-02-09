@@ -77,31 +77,54 @@ export class AgentScheduler {
       console.log(`✅ Helix is now ALWAYS ON - listening for DMs in real-time`);
     }
 
-    // Schedule other agents (not Helix)
-    const otherAgents = this.agents.filter(a => a.config.id !== 'helix');
-    otherAgents.forEach((agent, index) => {
-      // Run every 15 minutes, staggered by 2 minutes
-      const minuteOffset = index * 2;
-      const cronPattern = `${minuteOffset},${minuteOffset + 15},${minuteOffset + 30},${minuteOffset + 45} * * * *`;
+    // Schedule specialists (not Helix) to rotate - only ONE active at a time
+    // Rotation schedule: each specialist gets a 2-hour window every 12 hours
+    const specialists = this.agents.filter(a => a.config.id !== 'helix');
 
-      const job = new CronJob(cronPattern, async () => {
-        try {
-          await agent.run();
-        } catch (error) {
-          console.error(`Error running agent:`, error);
-        }
+    if (specialists.length > 0) {
+      const hoursPerAgent = 12 / specialists.length; // Distribute 12 hours among specialists
+
+      specialists.forEach((agent, index) => {
+        // Each agent runs for their designated time window
+        // Agent 0: 00:00-02:00, 12:00-14:00
+        // Agent 1: 02:00-04:00, 14:00-16:00
+        // Agent 2: 04:00-06:00, 16:00-18:00
+        // etc.
+
+        const startHour1 = Math.floor(index * hoursPerAgent);
+        const endHour1 = Math.floor((index + 1) * hoursPerAgent);
+        const startHour2 = startHour1 + 12;
+        const endHour2 = endHour1 + 12;
+
+        // Run every 15 minutes during agent's window
+        // Format: */15 start-end,start2-end2 * * *
+        const cronPattern = `*/15 ${startHour1}-${endHour1 - 1},${startHour2}-${endHour2 - 1} * * *`;
+
+        const job = new CronJob(cronPattern, async () => {
+          try {
+            await agent.run();
+          } catch (error) {
+            console.error(`Error running agent:`, error);
+          }
+        });
+
+        job.start();
+        this.jobs.push(job);
+
+        console.log(
+          `Scheduled ${agent.config.name} to run every 15min during: ` +
+          `${String(startHour1).padStart(2, '0')}:00-${String(endHour1).padStart(2, '0')}:00 and ` +
+          `${String(startHour2).padStart(2, '0')}:00-${String(endHour2).padStart(2, '0')}:00`
+        );
       });
-
-      job.start();
-      this.jobs.push(job);
-
-      console.log(`Scheduled ${agent.config.name} to run every 15 minutes (offset: ${minuteOffset}m)`);
-    });
+    }
 
     console.log('Agent scheduler running');
 
     // Send startup notification via webhook
     const helixStatus = helixAgent ? '⚡ **Helix is ALWAYS ON** - DM me anytime for instant response!' : '';
+
+    const specialists = this.agents.filter(a => a.config.id !== 'helix');
 
     await fetch(this.config.discordWebhookUrl, {
       method: 'POST',
@@ -109,10 +132,10 @@ export class AgentScheduler {
       body: JSON.stringify({
         content:
           `🐦 **Kuruvi Agent System Started**\n\n` +
-          `${this.agents.length} agents are now active!\n\n` +
+          `${this.agents.length} agents configured!\n\n` +
           `${helixStatus}\n\n` +
-          `Other agents check tasks every 15 minutes:\n` +
-          `${otherAgents.map(a => `${a.config.emoji} ${a.config.name}`).join(', ')}\n\n` +
+          `**Specialists rotate - only ONE active at a time:**\n` +
+          `${specialists.map(a => `${a.config.emoji} ${a.config.name}`).join(', ')}\n\n` +
           `You can DM any agent directly to create tasks!`,
       }),
     });
