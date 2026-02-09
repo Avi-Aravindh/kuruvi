@@ -103,6 +103,7 @@ export default function Home() {
   const moveTask = useMutation(api.tasks.moveToAgent);
   const updateStatus = useMutation(api.tasks.updateStatus);
   const deleteTask = useMutation(api.tasks.deleteTask);
+  const deleteAllByAgent = useMutation(api.tasks.deleteAllByAgent);
 
   const [showNewTask, setShowNewTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -319,7 +320,7 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <span
                       style={{
                         fontSize: "13px",
@@ -329,6 +330,37 @@ export default function Home() {
                     >
                       {activeTasks.length}
                     </span>
+                    {agentTasks.length > 0 && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm(`Delete all ${agentTasks.length} tasks for ${agent.name}?`)) {
+                            deleteAllByAgent({ agent: agent.id });
+                          }
+                        }}
+                        className="flex items-center justify-center"
+                        style={{
+                          width: "28px",
+                          height: "28px",
+                          borderRadius: "7px",
+                          border: "none",
+                          background: "#ffffff",
+                          color: "#9ca3af",
+                          cursor: "pointer",
+                          transition: "all 0.15s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "#ef4444";
+                          e.currentTarget.style.color = "#ffffff";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "#ffffff";
+                          e.currentTarget.style.color = "#9ca3af";
+                        }}
+                      >
+                        <TrashIcon />
+                      </button>
+                    )}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

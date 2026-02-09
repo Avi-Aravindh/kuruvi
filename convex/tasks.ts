@@ -149,3 +149,18 @@ export const deleteTask = mutation({
     await ctx.db.delete(args.taskId);
   },
 });
+
+// Delete all tasks for a specific agent
+export const deleteAllByAgent = mutation({
+  args: {
+    agent: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const tasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_agent", (q) => q.eq("agent", args.agent as any))
+      .collect();
+
+    await Promise.all(tasks.map((task) => ctx.db.delete(task._id)));
+  },
+});
