@@ -9,12 +9,9 @@ export default defineSchema({
     // Each agent has their own independent queue - these are NOT sequential stages
     agent: v.union(
       v.literal("helix"),
-      v.literal("ada"),
-      v.literal("turing"),
-      v.literal("steve"),
       v.literal("jony"),
-      v.literal("nitty"),
-      v.literal("wanderer")
+      v.literal("turing"),
+      v.literal("nitty")
     ),
     status: v.union(
       v.literal("queued"),

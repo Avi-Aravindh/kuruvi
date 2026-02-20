@@ -23,12 +23,9 @@ function validateEnv() {
   // Check for at least one agent bot token
   const agentTokens = [
     'DISCORD_BOT_TOKEN_HELIX',
-    'DISCORD_BOT_TOKEN_ADA',
-    'DISCORD_BOT_TOKEN_TURING',
-    'DISCORD_BOT_TOKEN_STEVE',
     'DISCORD_BOT_TOKEN_JONY',
+    'DISCORD_BOT_TOKEN_TURING',
     'DISCORD_BOT_TOKEN_NITTY',
-    'DISCORD_BOT_TOKEN_WANDERER',
   ];
 
   const configuredAgents = agentTokens.filter((key) => process.env[key]);
@@ -52,12 +49,9 @@ async function main() {
   // Build agent bot configuration from environment
   const agentBots = [
     { name: 'Helix', token: process.env.DISCORD_BOT_TOKEN_HELIX },
-    { name: 'Ada', token: process.env.DISCORD_BOT_TOKEN_ADA },
-    { name: 'Turing', token: process.env.DISCORD_BOT_TOKEN_TURING },
-    { name: 'Steve', token: process.env.DISCORD_BOT_TOKEN_STEVE },
     { name: 'Jony', token: process.env.DISCORD_BOT_TOKEN_JONY },
+    { name: 'Turing', token: process.env.DISCORD_BOT_TOKEN_TURING },
     { name: 'Nitty', token: process.env.DISCORD_BOT_TOKEN_NITTY },
-    { name: 'Wanderer', token: process.env.DISCORD_BOT_TOKEN_WANDERER },
   ].filter((bot) => bot.token) as { name: string; token: string }[];
 
   const scheduler = new AgentScheduler({
