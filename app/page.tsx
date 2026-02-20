@@ -6,7 +6,7 @@ import { useState, useRef, useEffect } from "react";
 import { Id } from "../convex/_generated/dataModel";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
-type AgentId = "helix" | "ada" | "turing" | "steve" | "jony" | "nitty" | "wanderer";
+type AgentId = "helix" | "jony" | "turing" | "nitty";
 
 interface Agent {
   id: AgentId;
@@ -32,33 +32,6 @@ const agents: readonly Agent[] = [
     accentBorder: "#ddd6fe",
   },
   {
-    id: "ada",
-    name: "Ada",
-    trait: "The Architect",
-    avatar: "Α",
-    accentColor: "#0ea5e9",
-    accentBg: "#f0f9ff",
-    accentBorder: "#bae6fd",
-  },
-  {
-    id: "turing",
-    name: "Turing",
-    trait: "Efficiency Expert",
-    avatar: "Τ",
-    accentColor: "#059669",
-    accentBg: "#ecfdf5",
-    accentBorder: "#a7f3d0",
-  },
-  {
-    id: "steve",
-    name: "Steve",
-    trait: "The Visionary",
-    avatar: "Σ",
-    accentColor: "#d97706",
-    accentBg: "#fffbeb",
-    accentBorder: "#fde68a",
-  },
-  {
     id: "jony",
     name: "Jony",
     trait: "The Designer",
@@ -68,22 +41,22 @@ const agents: readonly Agent[] = [
     accentBorder: "#fbcfe8",
   },
   {
+    id: "turing",
+    name: "Turing",
+    trait: "The Developer",
+    avatar: "Τ",
+    accentColor: "#059669",
+    accentBg: "#ecfdf5",
+    accentBorder: "#a7f3d0",
+  },
+  {
     id: "nitty",
     name: "Nitty",
-    trait: "The QA Engineer",
+    trait: "The Tester",
     avatar: "Ν",
     accentColor: "#dc2626",
     accentBg: "#fef2f2",
     accentBorder: "#fecaca",
-  },
-  {
-    id: "wanderer",
-    name: "Wanderer",
-    trait: "The Explorer",
-    avatar: "Ω",
-    accentColor: "#06b6d4",
-    accentBg: "#ecfeff",
-    accentBorder: "#a5f3fc",
   },
 ];
 
@@ -110,7 +83,7 @@ export default function Home() {
   const [showNewTask, setShowNewTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
-  const [newTaskAgent, setNewTaskAgent] = useState<AgentId>("ada");
+  const [newTaskAgent, setNewTaskAgent] = useState<AgentId>("jony");
   const [newTaskPriority, setNewTaskPriority] = useState<Priority>("medium");
   const [expandedTask, setExpandedTask] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState<Record<string, boolean>>({});
@@ -131,7 +104,7 @@ export default function Home() {
       setNewTaskTitle("");
       setNewTaskDescription("");
       setNewTaskPriority("medium");
-      setNewTaskAgent("ada");
+      setNewTaskAgent("jony");
       setShowNewTask(false);
     } finally {
       setIsCreating(false);
